@@ -11,13 +11,18 @@ SHOW VARIABLES LIKE 'sql_log_bin';
 SHOW VARIABLES LIKE 'binlog_format';
 SHOW VARIABLES LIKE 'enforce_gtid_consistency';
 
-# Debugging
--- SHOW BINARY LOGS;
--- SHOW BINLOG EVENTS IN 'binlog.000001' LIMIT 11000;
-
 ALTER TABLE DimTitle AUTO_INCREMENT = 11923617;
 SET GLOBAL auto_increment_offset = 1;
 SET GLOBAL auto_increment_increment = 3;
+
+DELIMITER @@
+CREATE TRIGGER update_version
+BEFORE UPDATE ON DimTitle
+FOR EACH ROW
+BEGIN
+    SET NEW.version = OLD.version + 1;
+END;@@
+DELIMITER ;
 
 STOP REPLICA FOR CHANNEL "Node2ToNode1";
 STOP REPLICA FOR CHANNEL "Node3ToNode1";
@@ -42,4 +47,3 @@ SHOW REPLICA STATUS;
 
 SET sql_log_bin = ON;
 
-SET sql_log_bin = OFF;
