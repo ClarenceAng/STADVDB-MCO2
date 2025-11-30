@@ -14,7 +14,7 @@ import CIcon from '@coreui/icons-react'
 import { cilMovie } from '@coreui/icons'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { coolFetch } from '../../lib/fetch'
+import { coolGetFetch } from '../../lib/fetch'
 
 const Dashboard = () => {
   const pageSize = 25
@@ -42,9 +42,9 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     params.set('page', page)
-    coolFetch(`http://localhost:4000/items?node=2&page=${page}&ps=${pageSize}`, setNode2Data)
+    coolGetFetch(`http://localhost:4000/items?node=2&page=${page}&ps=${pageSize}`, setNode2Data)
       .then(() =>
-        coolFetch(`http://localhost:4000/count?node=2`, ({ count }) => setNode2Count(count)),
+        coolGetFetch(`http://localhost:4000/count?node=2`, ({ count }) => setNode2Count(count)),
       )
       .then(() => setLoading(false))
   }, [page])
