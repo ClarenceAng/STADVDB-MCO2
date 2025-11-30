@@ -21,7 +21,7 @@ const dbNodes = {
     database: 'nodedb',
   }),
   2: mysql.createPool({
-    host: '100.69.42.2',
+    host: 'stadvdb2.rinaldolee.com',
     user: 'root',
     password: 'cliveisgay',
     database: 'nodedb',

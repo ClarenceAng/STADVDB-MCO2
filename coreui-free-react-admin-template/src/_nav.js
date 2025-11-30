@@ -5,6 +5,12 @@ import { CNavItem } from '@coreui/react'
 const _nav = [
   {
     component: CNavItem,
+    name: 'All Movies and Shows',
+    to: '/node1',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
     name: 'Movies and Misc',
     to: '/node2',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
