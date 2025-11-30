@@ -17,7 +17,7 @@ import {
   CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilMovie, cilPen, cilPlus } from '@coreui/icons'
+import { cilMovie, cilPen, cilPlus, cilSearch } from '@coreui/icons'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { coolGetFetch } from '../../lib/fetch'
@@ -58,12 +58,14 @@ const NodeGenres = [
 const Dashboard = () => {
   const pageSize = 25
   const [page, setPage] = useState(0)
+  const [search, setSearch] = useState('')
   const [params, setParams] = useSearchParams()
   const [nodeData, setNodeData] = useState([])
   const [nodeCount, setNodeCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [insertModal, setInsertModal] = useState(false)
   const [editModal, setEditModal] = useState(false)
+  const [reload, setReload] = useState([])
   const [selectedEntry, setSelectedEntry] = useState({})
   const pageCount = Math.ceil(nodeCount / pageSize)
 
@@ -81,20 +83,24 @@ const Dashboard = () => {
 
   // Fetch data on mount
   useEffect(() => {
+    let dataUrl = `http://localhost:4000/items?node=${NODE}&page=${page}&ps=${pageSize}`
+    let countUrl = `http://localhost:4000/count?node=${NODE}`
+    if (!!search.trim()) {
+      const kw = `&keywords=${search
+        .split(' ')
+        .map((s) => s.trim())
+        .join(',')}`
+      dataUrl += kw
+      countUrl += kw
+    }
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     params.set('page', page)
-    coolGetFetch(
-      `http://localhost:4000/items?node=${NODE}&page=${page}&ps=${pageSize}`,
-      setNodeData,
-    )
-      .then(() =>
-        coolGetFetch(`http://localhost:4000/count?node=${NODE}`, ({ count }) =>
-          setNodeCount(count),
-        ),
-      )
+    coolGetFetch(dataUrl, setNodeData)
+      .then(() => coolGetFetch(countUrl, ({ count }) => setNodeCount(count)))
       .then(() => setLoading(false))
-  }, [page])
+  }, [page, reload])
 
   useEffect(() => {
     const page = params.get('page')
@@ -107,7 +113,29 @@ const Dashboard = () => {
 
   return (
     <>
-      <div>
+      <div style={{ display: 'flex', gap: '1em' }}>
+        <div style={{ display: 'flex' }}>
+          <CFormInput
+            value={search}
+            style={{
+              width: '10em',
+              borderRadius: '0.33em 0 0 0.33em',
+              border: '1px solid rgba(0, 0, 0, 0.2)',
+            }}
+            onChange={(e) => setSearch(e.currentTarget.value)}
+          ></CFormInput>
+          <CButton
+            color="dark"
+            style={{
+              display: 'flex',
+              borderRadius: '0 0.33em 0.33em 0',
+              alignItems: 'center',
+            }}
+            onClick={() => setReload([])}
+          >
+            <CIcon icon={cilSearch}></CIcon>
+          </CButton>
+        </div>
         <CButton
           style={{
             borderRadius: '0.2em',

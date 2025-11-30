@@ -48,7 +48,11 @@ app.get('/items', async (req, res) => {
   const node = req.query['node']
   const pageSize = req.query['ps']
   const pageNumber = req.query['page']
-  const query = `SELECT * FROM DimTitle LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
+  const keywords = req.query['keywords']?.split(',') || []
+  const query = keywords.length
+    ? `SELECT * FROM DimTitle WHERE ${keywords.map((k) => `primaryTitle LIKE '%${k}%'`).join(' AND ')} LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
+    : `SELECT * FROM DimTitle LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
+  console.log(query)
   const [rows] = await dbNodes[node].query(query)
   res.json(rows)
 })
@@ -58,7 +62,10 @@ app.get('/count', async (req, res) => {
   // Bruh we getting sql injection here AHAHAHAHAHAHA
   // OFC we ain't doing this in the real world
   const node = req.query['node']
-  const query = `SELECT COUNT(*) FROM DimTitle`
+  const keywords = req.query['keywords']?.split(',') || []
+  const query = keywords.length
+    ? `SELECT COUNT(*) FROM DimTitle WHERE ${keywords.map((k) => `primaryTitle LIKE '%${k}%'`).join(' AND ')}`
+    : `SELECT COUNT(*) FROM DimTitle`
   const [count] = await dbNodes[node].query(query)
   res.json({ count: count[0]['COUNT(*)'] })
 })
