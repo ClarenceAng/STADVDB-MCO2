@@ -14,6 +14,12 @@ app.use(
 // No need for env LOL
 // In the real world, we definitely won't do this tho
 const dbNodes = {
+  1: mysql.createPool({
+    host: 'stadvdb1.rinaldolee.com',
+    user: 'root',
+    password: 'cliveisgay',
+    database: 'nodedb',
+  }),
   2: mysql.createPool({
     host: 'stadvdb2.rinaldolee.com',
     user: 'root',
