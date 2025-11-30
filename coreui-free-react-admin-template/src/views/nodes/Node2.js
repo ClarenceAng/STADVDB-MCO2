@@ -149,10 +149,14 @@ const Dashboard = () => {
           Insert Entry
         </CButton>
         <CModal visible={insertModal} onClose={() => setInsertModal(false)}>
-          <InsertModal />
+          <InsertModal setState={setInsertModal} />
         </CModal>
         <CModal visible={editModal} onClose={() => setEditModal(false)}>
-          <EditModal initialDraft={selectedEntry} />
+          <EditModal
+            initialDraft={selectedEntry}
+            selectedId={selectedEntry.titleID}
+            setState={setEditModal}
+          />
         </CModal>
       </div>
       <br />
@@ -238,7 +242,7 @@ const Dashboard = () => {
   )
 }
 
-const InsertModal = () => {
+const InsertModal = ({ setState }) => {
   const [entryDraft, setEntryDraft] = useState({
     titleType: 'movie',
     primaryTitle: '',
@@ -357,8 +361,8 @@ const InsertModal = () => {
             coolPostFetch(
               `http://localhost:4000/create?node=${NODE}`,
               entryDraft,
-              (v) => (console.log(v), alert('Succesfully inserted entry!')),
-            ).catch((e) => console.log(e))
+              (v) => (console.log(v), alert('Succesfully inserted entry!'), setState(false)),
+            ).catch((e) => (console.log(e), alert('Something went wrong...'), setState(false)))
           }}
         >
           Save changes
@@ -368,7 +372,7 @@ const InsertModal = () => {
   )
 }
 
-const EditModal = ({ initialDraft }) => {
+const EditModal = ({ initialDraft, selectedId, setState }) => {
   const [entryDraft, setEntryDraft] = useState(initialDraft)
   const setter = (key, value) => {
     setEntryDraft({
@@ -470,7 +474,18 @@ const EditModal = ({ initialDraft }) => {
         </div>
       </CModalBody>
       <CModalFooter>
-        <CButton color="primary">Save changes</CButton>
+        <CButton
+          color="primary"
+          onClick={() => {
+            coolPostFetch(
+              `http://localhost:4000/update?node=${NODE}&id=${selectedId}`,
+              entryDraft,
+              (v) => (console.log(v), alert('Succesfully updated entry!'), setState(false)),
+            ).catch((e) => (console.log(e), alert('Something went wrong...'), setState(false)))
+          }}
+        >
+          Save changes
+        </CButton>
       </CModalFooter>
     </>
   )
