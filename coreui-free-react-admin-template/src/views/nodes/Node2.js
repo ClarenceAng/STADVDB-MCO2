@@ -1,4 +1,5 @@
 import {
+  CBadge,
   CButton,
   CCard,
   CFormInput,
@@ -13,50 +14,44 @@ import CIcon from '@coreui/icons-react'
 import { cilMovie } from '@coreui/icons'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { coolFetch } from '../../lib/fetch'
 
 const Dashboard = () => {
+  const pageSize = 25
   const [page, setPage] = useState(0)
   const [params, setParams] = useSearchParams()
   const [node2Data, setNode2Data] = useState([])
+  const [node2Count, setNode2Count] = useState(0)
   const [loading, setLoading] = useState(true)
-
-  // Fetch node 2 stuff
-  async function fetchNode2Data() {
-    try {
-      const response = await fetch(`http://localhost:4000/items?node=2&page=${page}&ps=25`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      const data = await response.json()
-      setNode2Data(data)
-      console.log(data)
-      setLoading(false)
-    } catch (err) {
-      console.error('Fetch failed:', err)
-      setLoading(false)
-    }
-  }
+  const pageCount = Math.ceil(node2Count / pageSize)
 
   // Go to prev
   function goToPrevPage() {
     const p = parseInt(page)
-    if (!isNaN(p) && p > 0) location.href = `/#/node2?page=${p - 1}`
+    if (!isNaN(p) && p > 0) setPage(p - 1)
   }
 
   // Go to prev
   function goToNextPage() {
     const p = parseInt(page)
-    if (!isNaN(p) && p > 0) location.href = `/#/node2?page=${p + 1}`
+    if (!isNaN(p) && p < pageCount) setPage(p + 1)
   }
 
   // Fetch data on mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
-    fetchNode2Data()
+    params.set('page', page)
+    coolFetch(`http://localhost:4000/items?node=2&page=${page}&ps=${pageSize}`, setNode2Data)
+      .then(() =>
+        coolFetch(`http://localhost:4000/count?node=2`, ({ count }) => setNode2Count(count)),
+      )
+      .then(() => setLoading(false))
   }, [page])
 
   useEffect(() => {
     const page = params.get('page')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!page && page?.toString() !== '0') setPage(0)
     else setPage(page)
   }, [params])
@@ -65,6 +60,11 @@ const Dashboard = () => {
 
   return (
     <>
+      <div className="bg-black">
+        <CBadge className="mb-1 mx-2">
+          Page {page} of {pageCount - 1}
+        </CBadge>
+      </div>
       <CCard className="mb-4">
         <CTable align="middle" className="mb-0 border" hover responsive>
           <CTableHead className="text-nowrap">
@@ -108,21 +108,24 @@ const Dashboard = () => {
             width: '100%',
           }}
         >
-          <CButton className="border-black border-opacity-50 my-1" onClick={() => goToPrevPage()}>
+          <CButton className="border-black border-opacity-50 my-2" onClick={() => goToPrevPage()}>
             Prev
           </CButton>
           <CFormInput
-            className="my-1 mx-2"
-            value={page}
+            className="my-2 mx-2"
+            defaultValue={page}
             style={{
               width: '96px',
             }}
-            onChange={(e) => {
-              const key = e.currentTarget.keyCode
-              console.log(key)
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const newPage = parseInt(e.currentTarget.value)
+                if (!isNaN(newPage) && (!!newPage || newPage >= 0))
+                  if (newPage < pageCount) setPage(newPage)
+              }
             }}
           ></CFormInput>
-          <CButton className="border-black border-opacity-50 my-1" onClick={() => goToNextPage()}>
+          <CButton className="border-black border-opacity-50 my-2" onClick={() => goToNextPage()}>
             Next
           </CButton>
         </div>

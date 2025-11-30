@@ -15,7 +15,7 @@ app.use(
 // In the real world, we definitely won't do this tho
 const dbNodes = {
   2: mysql.createPool({
-    host: 'stadvdb2.rinaldolee.com',
+    host: '100.69.42.2',
     user: 'root',
     password: 'cliveisgay',
     database: 'nodedb',
@@ -35,9 +35,7 @@ const dbNodes = {
 //   res.json({ id: r.insertId })
 // })
 
-app.get('/')
-
-// READ ALL
+// Read all
 app.get('/items', async (req, res) => {
   // Bruh we getting sql injection here AHAHAHAHAHAHA
   // OFC we ain't doing this in the real world
@@ -47,6 +45,16 @@ app.get('/items', async (req, res) => {
   const query = `SELECT * FROM DimTitle LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
   const [rows] = await dbNodes[node].query(query)
   res.json(rows)
+})
+
+// Get count
+app.get('/count', async (req, res) => {
+  // Bruh we getting sql injection here AHAHAHAHAHAHA
+  // OFC we ain't doing this in the real world
+  const node = req.query['node']
+  const query = `SELECT COUNT(*) FROM DimTitle`
+  const [count] = await dbNodes[node].query(query)
+  res.json({ count: count[0]['COUNT(*)'] })
 })
 
 // // READ ONE
