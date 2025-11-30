@@ -13,12 +13,16 @@ export async function coolGetFetch(url, setter, setLoading) {
   }
 }
 
-export async function coolPostFetch(url, setter, setLoading) {
+export async function coolPostFetch(url, payload, setter, setLoading) {
   try {
-    const response = await fetch(url, { method: 'POST' })
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
     const data = await response.json()
     setter(data)
     setLoading?.(false)

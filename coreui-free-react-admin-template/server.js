@@ -35,12 +35,30 @@ export const dbNodes = {
   }),
 }
 
-// // CREATE
-// app.post('/items', async (req, res) => {
-//   const { name } = req.body
-//   const [r] = await db.query('INSERT INTO items (name) VALUES (?)', [name])
-//   res.json({ id: r.insertId })
-// })
+// CREATE
+app.post('/create', async (req, res) => {
+  const body = req.body
+  const node = req.query['node']
+  const insertDraft = {
+    titleType: body.titleType,
+    primaryTitle: body.primaryTitle,
+    originalTitle: body.primaryTitle,
+    isAdult: body.isAdult,
+    startYear: body.startYear,
+    endYear: body.endYear,
+    genre1: body.genre1,
+    genre2: body.genre2,
+    genre3: body.genre3,
+  }
+
+  const [r] = await dbNodes[node].query(
+    `INSERT INTO DimTitle (${Object.keys(insertDraft).join(',')}) VALUES (${Object.keys(insertDraft)
+      .map(() => '?')
+      .join(',')})`,
+    Object.values(insertDraft).map((s) => (!!s ? s : null)),
+  )
+  res.json({ id: r.insertId })
+})
 
 // Read all
 app.get('/items', async (req, res) => {

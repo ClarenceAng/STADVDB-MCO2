@@ -20,7 +20,7 @@ import CIcon from '@coreui/icons-react'
 import { cilMovie, cilPen, cilPlus, cilSearch } from '@coreui/icons'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { coolGetFetch } from '../../lib/fetch'
+import { coolGetFetch, coolPostFetch } from '../../lib/fetch'
 
 const NODE = 3
 const NodeGenres = [
@@ -239,7 +239,11 @@ const Dashboard = () => {
 }
 
 const InsertModal = () => {
-  const [entryDraft, setEntryDraft] = useState({})
+  const [entryDraft, setEntryDraft] = useState({
+    titleType: 'movie',
+    primaryTitle: '',
+    isAdult: 0,
+  })
   const setter = (key, value) => {
     setEntryDraft({
       ...entryDraft,
@@ -259,6 +263,7 @@ const InsertModal = () => {
           </CBadge>
           <CFormSelect
             aria-label="titleType"
+            value={entryDraft.titleType}
             onChange={(e) => setter('titleType', e.currentTarget.value)}
             options={[
               { label: 'movie', value: 'movie' },
@@ -271,13 +276,17 @@ const InsertModal = () => {
           <CBadge className="mb-1 mt-3" color="dark">
             Primary Title
           </CBadge>
-          <CFormInput onChange={(e) => setter('primaryTitle', e.currentTarget.value)}></CFormInput>
+          <CFormInput
+            value={entryDraft.primaryTitle}
+            onChange={(e) => setter('primaryTitle', e.currentTarget.value)}
+          ></CFormInput>
 
           <CBadge className="mb-1 mt-3" color="dark">
             Is Adult?
           </CBadge>
           <CFormSelect
             aria-label="isAdult"
+            value={entryDraft.isAdult}
             onChange={(e) => setter('isAdult', e.currentTarget.value)}
             options={[
               { label: '0', value: '0' },
@@ -290,6 +299,7 @@ const InsertModal = () => {
           </CBadge>
           <CFormInput
             type="number"
+            value={entryDraft.startYear}
             onChange={(e) => setter('startYear', e.currentTarget.value)}
           ></CFormInput>
 
@@ -298,6 +308,7 @@ const InsertModal = () => {
           </CBadge>
           <CFormInput
             type="number"
+            value={entryDraft.endYear}
             onChange={(e) => setter('endYear', e.currentTarget.value)}
           ></CFormInput>
 
@@ -306,6 +317,7 @@ const InsertModal = () => {
           </CBadge>
           <CFormSelect
             aria-label="genre1"
+            value={entryDraft.genre1}
             onChange={(e) => setter('genre1', e.currentTarget.value)}
             options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
           />
@@ -315,6 +327,7 @@ const InsertModal = () => {
           </CBadge>
           <CFormSelect
             aria-label="genre2"
+            value={entryDraft.genre2}
             onChange={(e) => setter('genre2', e.currentTarget.value)}
             options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
           />
@@ -324,6 +337,7 @@ const InsertModal = () => {
           </CBadge>
           <CFormSelect
             aria-label="genre3"
+            value={entryDraft.genre3}
             onChange={(e) => setter('genre3', e.currentTarget.value)}
             options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
           />
@@ -333,7 +347,18 @@ const InsertModal = () => {
         <CButton
           color="primary"
           onClick={() => {
-            // ! PLEASE INSERT REQUEST TO INSERT HERE, USE draftEntry AS DATA
+            // Check if data is valid first
+            if (!entryDraft?.primaryTitle?.trim()) {
+              return alert('Primary title is required but missing')
+            }
+            if (!entryDraft?.titleType?.trim()) {
+              return alert('Title type is required but missing')
+            }
+            coolPostFetch(
+              `http://localhost:4000/create?node=${NODE}`,
+              entryDraft,
+              (v) => (console.log(v), alert('Succesfully inserted entry!')),
+            ).catch((e) => console.log(e))
           }}
         >
           Save changes
