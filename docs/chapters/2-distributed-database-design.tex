@@ -1,0 +1,74 @@
+%%
+%% Section 2: Distributed Database Design
+%%
+\section{Distributed Database Design}
+
+% Using Exercise 5 Distributed Databases as your guide, present the setup of your distributed database.
+
+\subsection{System Architecture}
+% Present the setup of your distributed database
+% - The data stored in each node
+% - The application use case (functionalities)
+% Provide illustrations and diagrams as necessary
+
+% TODO: Add system architecture diagram
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=\linewidth]{images/architecture.png}
+%   \caption{Three-Node Distributed Database System Architecture}
+%   \label{fig:architecture}
+% \end{figure}
+
+The distributed database system consists of three nodes deployed on separate machines:
+
+\begin{itemize}
+    \item \textbf{Node 1 (Central Node):} Contains all rows in the main database, serving as the master node for data replication and coordination.
+    \item \textbf{Node 2:} Contains a horizontal partition of the data based on [specify fragmentation criterion, e.g., year < 2010].
+    \item \textbf{Node 3:} Contains the complementary horizontal partition based on [specify fragmentation criterion, e.g., year >= 2010].
+\end{itemize}
+
+\subsection{Database Schema}
+% Present the database schema used across all nodes
+% Note: The schema is homogeneous across all nodes
+
+% TODO: Add database schema description
+% \begin{verbatim}
+% CREATE TABLE table_name (
+%     column1 datatype,
+%     column2 datatype,
+%     ...
+% );
+% \end{verbatim}
+
+\subsection{Data Fragmentation Strategy}
+% Is the database homogeneous or heterogeneous?
+% How is data fragmented across the nodes?
+
+The distributed database follows a \textbf{homogeneous} design where the schema across all three nodes is identical. Data fragmentation is implemented using \textbf{horizontal fragmentation} based on [specify criterion].
+
+% TODO: Explain fragmentation criteria and justify the choice
+
+\subsection{Data Replication Strategy}
+% How is data replicated across the nodes?
+
+% TODO: Describe replication strategy
+% - Full replication on Node 1
+% - Partial replication on Nodes 2 and 3
+
+\subsection{Web Application Overview}
+% Describe how the web application manages access to the distributed database
+
+% TODO: Add web application architecture diagram
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=\linewidth]{images/webapp-architecture.png}
+%   \caption{Web Application Architecture}
+%   \label{fig:webapp}
+% \end{figure}
+
+\subsection{Update and Recovery Mechanism Overview}
+% Give an overview of the update and recovery mechanism as a prelude to Sections 3 and 4
+
+% TODO: Provide high-level overview
+% - How updates are propagated across nodes
+% - How recovery is handled when nodes fail

@@ -1,0 +1,101 @@
+%%
+%% Section 4: Global Failure and Recovery
+%%
+\section{Global Failure and Recovery}
+
+\subsection{Recovery Strategy}
+
+\subsubsection{Recovery Operation Process}
+% What happens during a recovery operation?
+% What facilities did you build to support your distributed database during a recovery operation?
+
+% TODO: Describe recovery process
+
+\subsubsection{Recovery Algorithm}
+% Illustrate with the use of an algorithm (not source code)
+
+% TODO: Add recovery algorithm
+% \begin{algorithm}
+% \caption{Node Recovery Algorithm}
+% \begin{algorithmic}[1]
+% \State // Pseudocode for node recovery
+% \When{node comes back online}
+%     \State Check for missed transactions from transaction log
+%     \State Apply missed transactions in order
+%     \State Synchronize with central node
+%     \State Resume normal operations
+% \EndWhen
+% \end{algorithmic}
+% \end{algorithm}
+
+\subsection{Methodology}
+% Explain the methodology employed to simulate global failure and recovery
+
+\subsubsection{Experimental Setup}
+% Describe the setup of your experiments
+
+% TODO: Describe how failures were simulated (e.g., network interruption, process termination)
+
+\subsubsection{Test Cases}
+% Present the test cases used to simulate each of the test cases in global failure and recovery
+
+\paragraph{Case \#1: Central Node Write Failure During Replication from Node 2/3}
+% When attempting to replicate the transaction from Node 2 or Node 3 to the central node, 
+% the transaction fails in writing (insert/update) to the central node.
+
+% TODO: Describe test case setup and expected behavior
+
+\paragraph{Case \#2: Central Node Recovery with Missed Transactions}
+% The central node eventually recovers from failure and missed certain write transactions.
+
+% TODO: Describe test case setup and expected behavior
+
+\paragraph{Case \#3: Node 2/3 Write Failure During Replication from Central Node}
+% When attempting to replicate the transaction from central node to Node 2 or Node 3,
+% the transaction fails in writing (insert/update) to Node 2 or Node 3.
+
+% TODO: Describe test case setup and expected behavior
+
+\paragraph{Case \#4: Node 2/3 Recovery with Missed Transactions}
+% Node 2 or Node 3 eventually recovers from failure and missed certain write transactions.
+
+% TODO: Describe test case setup and expected behavior
+
+\subsubsection{Validation Method}
+% How did you validate the correctness of your recovery strategy?
+
+% TODO: Describe validation approach
+
+\subsection{Results and Discussion}
+% Show your results and give your analysis
+% Use tables and diagrams accordingly
+
+% TODO: Add results tables
+% \begin{table}[h]
+%   \caption{Global Failure Recovery Test Results}
+%   \label{tab:recovery-results}
+%   \begin{tabular}{lccc}
+%     \toprule
+%     \textbf{Test Case} & \textbf{Trial 1} & \textbf{Trial 2} & \textbf{Trial 3} \\
+%     \midrule
+%     Case \#1 & Pass/Fail & Pass/Fail & Pass/Fail \\
+%     Case \#2 & Pass/Fail & Pass/Fail & Pass/Fail \\
+%     Case \#3 & Pass/Fail & Pass/Fail & Pass/Fail \\
+%     Case \#4 & Pass/Fail & Pass/Fail & Pass/Fail \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+% Discuss key insights from your recovery strategies
+% Support with relevant literature
+
+\subsubsection{User Shielding from Node Failure}
+% How are users shielded from node failure?
+% When a node fails, how does your data replication strategy support the continued availability of the web application?
+
+% TODO: Explain user experience during failures
+
+\subsubsection{Recovery Support}
+% How does your data replication strategy support the recovery of your distributed database system from failure?
+
+% TODO: Explain how replication aids recovery

@@ -1,0 +1,132 @@
+%% 
+%% Technical Paper Template for STADVDB MCO2
+%% Distributed Database System - Transactions Management
+%%
+%% Adapted from ACM SIGCONF Proceedings template
+%%
+
+%%
+%% The first command in your LaTeX source must be the \documentclass command.
+\documentclass[sigconf, pbalance]{acmart}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+%%
+%% Remove the ACM References statement and copyright notice.
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+
+%%
+%% For managing citations, it is recommended to use bibliography files in BibTeX format.
+%%
+
+%% Additional packages
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+
+%% Listings configuration for code snippets
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+  tabsize=2
+}
+
+
+%% %% %% %% %%
+%% Start of the actual paper.
+\begin{document}
+
+%%
+%% Paper title.
+\title{Distributed Database System for Transactions Management}
+
+%%
+%% Authors
+\author{Clarence Ivan Ang}
+\affiliation{%
+  \institution{De La Salle University}
+  \city{Manila}
+  \country{Philippines}}
+\email{clarence_ivan_ang@dlsu.edu.ph}
+
+\author{Clive Jarel Ang}
+\affiliation{%
+  \institution{De La Salle University}
+  \city{Manila}
+  \country{Philippines}}
+\email{clive_jarel_c_ang@dlsu.edu.ph}
+
+\author{Malks Mogen David}
+\affiliation{%
+  \institution{De La Salle University}
+  \city{Manila}
+  \country{Philippines}}
+\email{malks_david@dlsu.edu.ph}
+
+\author{Rinaldo Adelrico Lee}
+\affiliation{%
+  \institution{De La Salle University}
+  \city{Manila}
+  \country{Philippines}}
+\email{rinaldo_lee@dlsu.edu.ph}
+
+
+%%
+%% Concise list of authors' names for page headers.
+\renewcommand{\shortauthors}{Ang et al.}
+
+
+%%
+%% The abstract is a short summary of the work to be presented in the article.
+\begin{abstract}
+% TODO: Write 150-250 words summarizing:
+% - Motivation for the research/project
+% - Problem being addressed (distributed database with concurrent transactions)
+% - Purpose and method (three-node distributed database system)
+% - Key results and findings from concurrency control and recovery simulations
+This technical report presents the design, implementation, and evaluation of a three-node distributed database system that supports concurrent multi-user access and transaction management. The system implements data fragmentation and replication strategies across the nodes, with Node 1 serving as the central node containing all data, while Nodes 2 and 3 contain horizontal partitions based on specified fragmentation criteria. We developed and tested concurrency control mechanisms to maintain data consistency across concurrent read and write operations, evaluating performance across different isolation levels (read uncommitted, read committed, repeatable read, and serializable). Additionally, we implemented global failure recovery strategies to handle node failures and transaction failures during replication. Our experimental results demonstrate the effectiveness of our update and replication strategies in maintaining database consistency while supporting high transaction throughput. The findings provide insights into the trade-offs between isolation levels, concurrency, and consistency in distributed database systems.
+\end{abstract}
+
+
+%%
+%% Keywords
+\keywords{Distributed Database, Concurrency Control, Transaction Management, Data Replication, Failure Recovery, Isolation Levels}
+
+%%
+%% This command processes the author and affiliation and title information.
+\maketitle
+
+
+%% Include the chapter files
+\input{chapters/1-introduction}
+\input{chapters/2-distributed-database-design}
+\input{chapters/3-concurrency-control-and-consistency}
+\input{chapters/4-global-failure-and-recovery}
+\input{chapters/5-discussion}
+\input{chapters/6-conclusion}
+
+
+%%
+%% Bibliography
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{sources}
+
+
+%% Declarations section
+\input{chapters/7-declarations}
+
+
+%%
+%% Appendix
+\appendix
+\input{chapters/8-appendix}
+
+
+\end{document}
