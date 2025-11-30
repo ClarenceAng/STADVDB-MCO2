@@ -122,6 +122,7 @@ const Dashboard = () => {
               borderRadius: '0.33em 0 0 0.33em',
               border: '1px solid rgba(0, 0, 0, 0.2)',
             }}
+            onKeyDown={(e) => e.key === 'Enter' && setReload([])}
             onChange={(e) => setSearch(e.currentTarget.value)}
           ></CFormInput>
           <CButton
