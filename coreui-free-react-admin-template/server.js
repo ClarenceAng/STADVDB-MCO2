@@ -1,6 +1,7 @@
 import express from 'express'
 import mysql from 'mysql2/promise'
 import cors from 'cors'
+import './src/lib/polling.js'
 
 // The server
 const app = express()
@@ -13,7 +14,7 @@ app.use(
 
 // No need for env LOL
 // In the real world, we definitely won't do this tho
-const dbNodes = {
+export const dbNodes = {
   1: mysql.createPool({
     host: 'stadvdb1.rinaldolee.com',
     user: 'root',
