@@ -17,7 +17,7 @@ import {
   CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilMovie, cilPlus } from '@coreui/icons'
+import { cilMovie, cilPen, cilPlus } from '@coreui/icons'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { coolGetFetch } from '../../lib/fetch'
@@ -64,6 +64,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [insertModal, setInsertModal] = useState(false)
   const [editModal, setEditModal] = useState(false)
+  const [selectedEntry, setSelectedEntry] = useState({})
   const pageCount = Math.ceil(nodeCount / pageSize)
 
   // Go to prev
@@ -122,7 +123,7 @@ const Dashboard = () => {
           <InsertModal />
         </CModal>
         <CModal visible={editModal} onClose={() => setEditModal(false)}>
-          <EditModal />
+          <EditModal initialDraft={selectedEntry} />
         </CModal>
       </div>
       <br />
@@ -139,7 +140,6 @@ const Dashboard = () => {
               <CTableHeaderCell className="bg-body-tertiary px-4">Title and Type</CTableHeaderCell>
               <CTableHeaderCell className="bg-body-tertiary text-center">Genres</CTableHeaderCell>
               <CTableHeaderCell className="bg-body-tertiary text-center"></CTableHeaderCell>
-              <CTableHeaderCell className="bg-body-tertiary"></CTableHeaderCell>
             </CTableRow>
           </CTableHead>
           <CTableBody>
@@ -160,6 +160,15 @@ const Dashboard = () => {
                   <div className="small text-body-secondary text-nowrap">
                     {[item.genre1, item.genre2, item.genre3].filter((g) => !!g).join(', ') || '—'}
                   </div>
+                </CTableDataCell>
+                <CTableDataCell className="text-center">
+                  <CButton
+                    variant="ghost"
+                    color="dark"
+                    onClick={() => (setEditModal(true), setSelectedEntry(item))}
+                  >
+                    <CIcon icon={cilPen}></CIcon>
+                  </CButton>
                 </CTableDataCell>
               </CTableRow>
             ))}
@@ -267,8 +276,8 @@ const InsertModal = () => {
             Genre 1
           </CBadge>
           <CFormSelect
-            aria-label="isAdult"
-            onChange={(e) => setter('isAdult', e.currentTarget.value)}
+            aria-label="genre1"
+            onChange={(e) => setter('genre1', e.currentTarget.value)}
             options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
           />
 
@@ -276,8 +285,8 @@ const InsertModal = () => {
             Genre 2
           </CBadge>
           <CFormSelect
-            aria-label="isAdult"
-            onChange={(e) => setter('isAdult', e.currentTarget.value)}
+            aria-label="genre2"
+            onChange={(e) => setter('genre2', e.currentTarget.value)}
             options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
           />
 
@@ -285,8 +294,8 @@ const InsertModal = () => {
             Genre 3
           </CBadge>
           <CFormSelect
-            aria-label="isAdult"
-            onChange={(e) => setter('isAdult', e.currentTarget.value)}
+            aria-label="genre3"
+            onChange={(e) => setter('genre3', e.currentTarget.value)}
             options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
           />
         </div>
@@ -305,14 +314,106 @@ const InsertModal = () => {
   )
 }
 
-const EditModal = () => {
+const EditModal = ({ initialDraft }) => {
+  const [entryDraft, setEntryDraft] = useState(initialDraft)
+  const setter = (key, value) => {
+    setEntryDraft({
+      ...entryDraft,
+      [key]: value,
+    })
+  }
+
   return (
     <>
       <CModalHeader>
-        <CModalTitle>Edit entry: {'yes'}</CModalTitle>
+        <CModalTitle>Edit entry: {entryDraft.primaryTitle ?? 'No Title'}</CModalTitle>
       </CModalHeader>
       <CModalBody>
-        <p>React Modal body text goes here.</p>
+        <div>
+          <CBadge className="mb-1 mt-3" color="dark">
+            Title Type
+          </CBadge>
+          <CFormSelect
+            aria-label="titleType"
+            onChange={(e) => setter('titleType', e.currentTarget.value)}
+            value={entryDraft?.titleType}
+            options={[
+              { label: 'movie', value: 'movie' },
+              { label: 'short', value: 'short' },
+              { label: 'video', value: 'video' },
+              { label: 'video', value: 'videoGame' },
+            ]}
+          />
+
+          <CBadge className="mb-1 mt-3" color="dark">
+            Primary Title
+          </CBadge>
+          <CFormInput
+            value={entryDraft?.primaryTitle}
+            onChange={(e) => setter('primaryTitle', e.currentTarget.value)}
+          ></CFormInput>
+
+          <CBadge className="mb-1 mt-3" color="dark">
+            Is Adult?
+          </CBadge>
+          <CFormSelect
+            aria-label="isAdult"
+            value={entryDraft?.isAdult}
+            onChange={(e) => setter('isAdult', e.currentTarget.value)}
+            options={[
+              { label: '0', value: '0' },
+              { label: '1', value: '1' },
+            ]}
+          />
+
+          <CBadge className="mb-1 mt-3" color="dark">
+            Start Year
+          </CBadge>
+          <CFormInput
+            type="number"
+            value={entryDraft?.startYear}
+            onChange={(e) => setter('startYear', e.currentTarget.value)}
+          ></CFormInput>
+
+          <CBadge className="mb-1 mt-3" color="dark">
+            End Year
+          </CBadge>
+          <CFormInput
+            type="number"
+            value={entryDraft?.endYear}
+            onChange={(e) => setter('endYear', e.currentTarget.value)}
+          ></CFormInput>
+
+          <CBadge className="mb-1 mt-3" color="dark">
+            Genre 1
+          </CBadge>
+          <CFormSelect
+            aria-label="genre1"
+            value={entryDraft?.genre1}
+            onChange={(e) => setter('genre1', e.currentTarget.value)}
+            options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
+          />
+
+          <CBadge className="mb-1 mt-3" color="dark">
+            Genre 2
+          </CBadge>
+          <CFormSelect
+            aria-label="genre2"
+            value={entryDraft?.genre2}
+            onChange={(e) => setter('genre2', e.currentTarget.value)}
+            options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
+          />
+
+          <CBadge className="mb-1 mt-3" color="dark">
+            Genre 3
+          </CBadge>
+          <CFormSelect
+            aria-label="genre3"
+            value={entryDraft?.genre3}
+            onChange={(e) => setter('genre3', e.currentTarget.value)}
+            options={NodeGenres.map((ng) => ({ label: ng, value: ng }))}
+          />
+        </div>
       </CModalBody>
       <CModalFooter>
         <CButton color="primary">Save changes</CButton>
