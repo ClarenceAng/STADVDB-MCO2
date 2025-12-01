@@ -66,7 +66,7 @@ export async function replicateNode(localId) {
                SET tconst = ?, titleType = ?, primaryTitle = ?, originalTitle = ?, isAdult = ?,
                    startYear = ?, endYear = ?, genre1 = ?, genre2 = ?, genre3 = ?,
                    dateCreated = ?, dateModified = ?
-               WHERE titleID = ?`,
+               WHERE titleID = ? AND version < ?`,
               [
                 payload.tconst,
                 payload.titleType,
@@ -81,6 +81,7 @@ export async function replicateNode(localId) {
                 payload.dateCreated,
                 payload.dateModified,
                 payload.titleID,
+                log.version
               ],
             )
             break
