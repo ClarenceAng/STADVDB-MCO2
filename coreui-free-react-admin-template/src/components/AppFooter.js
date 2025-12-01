@@ -8,7 +8,7 @@ const AppFooter = () => {
         <span className="ms-1">MCO2 - Group 8</span>
       </div>
       <div className="ms-auto">
-        <span className="me-1">Based on</span>
+        <span className="me-1">heehee</span>
         <a
           href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
           target="_blank"
