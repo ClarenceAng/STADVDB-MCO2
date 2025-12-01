@@ -7,7 +7,7 @@ This section describes the architecture of the distributed database system, incl
 
 \subsection{System Architecture}
 
-The system consists of three MySQL database nodes deployed on separate cloud servers. Each node runs independently and communicates with the others through a custom transaction log-based synchronization mechanism. The nodes are configured as follows:
+The system consists of three MySQL database nodes deployed on separate virtual machines. Each node runs independently and communicates with the others through a custom transaction log-based synchronization mechanism. The nodes are configured as follows:
 
 \begin{itemize}
     \item \textbf{Node 1 (Central Node):} Contains all 100,000 records from the dataset. This node serves as the central coordinator and maintains the complete dataset for reference and recovery purposes.
