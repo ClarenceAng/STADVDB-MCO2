@@ -11,7 +11,7 @@ async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) 
 
     for (const log of logs) {
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
-      if (log.status !== 'pending') continue
+      // if (log.status !== 'pending') continue
 
       await conn.query(
         `INSERT INTO ${localTable} (operation_type, payload, version, status, origin_node_id, created_at, committed_at)
