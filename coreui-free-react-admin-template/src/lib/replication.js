@@ -19,8 +19,8 @@ export async function replicateNode(localId) {
       })
 
       if (sameTitleLogs.length > 1) {
-        const node1Only = sameTitleLogs.filter((log2) => log2.origin_node_id == 1)
-        return log.origin_node_id == 1
+        const max = sameTitleLogs.reduce((prev, next) => prev.version > next.version ? prev : next, [sameTitleLogs[0]])
+        return log.log_id == max.log_id
       } else {
         return true        
       }
