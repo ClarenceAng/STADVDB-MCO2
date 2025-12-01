@@ -95,22 +95,6 @@ app.post('/update', async (req, res) => {
     genre3: body.genre3 ?? oldEntry.genre3,
   }
 
-  const payload = JSON.stringify({
-    titleID: oldEntry.titleID,
-    tconst: oldEntry.tconst,
-    titleType: updateDraft.titleType,
-    primaryTitle: updateDraft.primaryTitle,
-    originalTitle: updateDraft.originalTitle,
-    isAdult: updateDraft.isAdult,
-    startYear: updateDraft.startYear,
-    endYear: updateDraft.endYear,
-    genre1: updateDraft.genre1,
-    genre2: updateDraft.genre2,
-    genre3: updateDraft.genre3,
-    dateCreated: oldEntry.dateCreated,
-    dateModified: new Date().toISOString()
-  });
-
   // Make sure updated row has same ver
   try {
     await dbNodes[node].query('START TRANSACTION')
@@ -121,27 +105,6 @@ app.post('/update', async (req, res) => {
         .join(',')} WHERE titleID = ${id} AND version = ${version}`,
       Object.values(updateDraft).map((s) => (!!s ? s : null)),
     )
-
-    const [r] = await dbNodes[node].query(
-      `INSERT INTO node1_transaction_log (
-        operation_type,
-        payload,
-        version,
-        status,
-        origin_node_id
-      ) VALUES (
-        'UPDATE',
-        ?,
-        ?,
-        'pending',
-        1
-      );`,
-      [
-        payload, version + 1
-      ]
-    )
-
-    		;
     await dbNodes[node].query('COMMIT')
     res.json({ id: id })
   } catch (e) {

@@ -13,10 +13,21 @@ export async function replicateNode(localId) {
 
     if (!pendingLogs.length) return
 
+    pendingLogs.filter((log) => {
+      const sameTitleLogs = pendingLogs.filter((log2) => {
+        return log.payload.titleID == log2.payload.titleID
+      })
+
+      if (sameTitleLogs.length > 1) {
+        const node1Only = sameTitleLogs.filter((log2) => log2.origin_node_id == 1)
+        return log.origin_node_id == 1
+      } else {
+        return true        
+      }
+    })
+
     for (const log of pendingLogs) {
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
-
-      console.log("Replicating: ", log)
 
       try {
         await conn.beginTransaction()
