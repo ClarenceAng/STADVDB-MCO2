@@ -27,6 +27,8 @@ async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) 
         ],
       )
 
+      console.log(`Added log ${log.version} from node ${sourceNodeId}`)
+
       const logCreated = new Date(log.created_at)
       if (logCreated > maxTimestamp) maxTimestamp = logCreated
     }
@@ -67,7 +69,7 @@ export async function pollNode(localId, remoteId, filterFunc = null) {
     const [logs] = await conn.query(
       `SELECT * FROM node${remoteId}_transaction_log
        WHERE created_at > ? AND origin_node_id != ?
-       ORDER BY version ASC, created_at ASC, log_id ASC`,
+       ORDER BY created_at ASC, log_id ASC`,
       [lastApplied, localId],
     )
 
