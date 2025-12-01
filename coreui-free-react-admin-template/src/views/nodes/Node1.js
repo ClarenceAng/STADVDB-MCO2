@@ -291,7 +291,14 @@ const InsertModal = ({ setState }) => {
               { label: 'movie', value: 'movie' },
               { label: 'short', value: 'short' },
               { label: 'video', value: 'video' },
-              { label: 'video', value: 'videoGame' },
+              { label: 'videoGame', value: 'videoGame' },
+              { label: 'tvShort', value: 'tvShort' },
+              { label: 'tvMovie', value: 'tvMovie' },
+              { label: 'tvEpisode', value: 'tvEpisode' },
+              { label: 'tvSeries', value: 'tvSeries' },
+              { label: 'tvMiniSeries', value: 'tvMiniSeries' },
+              { label: 'tvSpecial', value: 'tvSpecial' },
+              { label: 'tvShow', value: 'tvShow' },
             ]}
           />
 

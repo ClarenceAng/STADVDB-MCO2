@@ -288,10 +288,13 @@ const InsertModal = ({ setState }) => {
             value={entryDraft.titleType}
             onChange={(e) => setter('titleType', e.currentTarget.value)}
             options={[
-              { label: 'movie', value: 'movie' },
-              { label: 'short', value: 'short' },
-              { label: 'video', value: 'video' },
-              { label: 'video', value: 'videoGame' },
+              { label: 'tvShort', value: 'tvShort' },
+              { label: 'tvMovie', value: 'tvMovie' },
+              { label: 'tvEpisode', value: 'tvEpisode' },
+              { label: 'tvSeries', value: 'tvSeries' },
+              { label: 'tvMiniSeries', value: 'tvMiniSeries' },
+              { label: 'tvSpecial', value: 'tvSpecial' },
+              { label: 'tvShow', value: 'tvShow' },
             ]}
           />
 
@@ -302,7 +305,6 @@ const InsertModal = ({ setState }) => {
             value={entryDraft.primaryTitle}
             onChange={(e) => setter('primaryTitle', e.currentTarget.value)}
           ></CFormInput>
-
           <CBadge className="mb-1 mt-3" color="dark">
             Is Adult?
           </CBadge>
