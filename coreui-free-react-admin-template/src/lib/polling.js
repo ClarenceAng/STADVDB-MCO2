@@ -10,6 +10,8 @@ async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) 
     let maxTimestamp = new Date(logs[0].created_at)
 
     for (const log of logs) {
+      console.log("executing: ", log)
+
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
 
       await conn.query(
@@ -66,7 +68,7 @@ export async function pollNode(localId, remoteId, filterFunc = null) {
     const [logs] = await conn.query(
       `SELECT * FROM node${remoteId}_transaction_log 
        WHERE created_at > ? AND origin_node_id != ?
-       ORDER BY created_at ASC, version ASC, log_id ASC`,
+       ORDER BY version ASC, created_at ASC, log_id ASC`,
       [lastApplied, localId],
     )
 
@@ -76,8 +78,6 @@ export async function pollNode(localId, remoteId, filterFunc = null) {
     if (filteredLogs.length !== logs.length) {
       console.log(`[Node${localId}] ${logs.length - filteredLogs.length} logs filtered out`)
     }
-
-    console.log(filteredLogs)
 
     await applyLogsBatch(localDB, localId, remoteId, filteredLogs, `node${localId}_transaction_log`)
   } catch (err) {
