@@ -13,10 +13,30 @@ export async function replicateNode(localId) {
 
     if (!pendingLogs.length) return
 
-    for (const log of pendingLogs) {
-      const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
+    const filteredLogs = pendingLogs.filter((log) => {
+      const sameTitleLogs = pendingLogs.filter((log2) => {
+        return log.payload.titleID == log2.payload.titleID
+      })
 
-      console.log("Replicating: ", log)
+      if (sameTitleLogs.length > 1) {
+        const max = sameTitleLogs.reduce((prev, next) => {
+          if (prev.version == next.version) {
+            return prev.origin_node_id == 1 ? prev : next
+          }
+          else {
+            return prev.version > next.version ? prev : next
+          }
+        }, [sameTitleLogs[0]])
+        return log.log_id == max.log_id
+      } else {
+        return true        
+      }
+    })
+
+    console.log("# of logs to apply: ", filteredLogs.length)
+
+    for (const log of filteredLogs) {
+      const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
 
       try {
         await conn.beginTransaction()
@@ -54,7 +74,7 @@ export async function replicateNode(localId) {
               `UPDATE DimTitle
                SET tconst = ?, titleType = ?, primaryTitle = ?, originalTitle = ?, isAdult = ?,
                    startYear = ?, endYear = ?, genre1 = ?, genre2 = ?, genre3 = ?,
-                   dateCreated = ?, dateModified = ?
+                   dateCreated = ?, dateModified = ?, version = ?
                WHERE titleID = ?`,
               [
                 payload.tconst,
@@ -69,16 +89,18 @@ export async function replicateNode(localId) {
                 payload.genre3,
                 payload.dateCreated,
                 payload.dateModified,
-                payload.titleID,
+                log.version,
+                payload.titleID
               ],
             )
             break
-          case 'DELETE':
-            await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])
+            case 'DELETE':
+              await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])
             break
-        }
-
-        await updateCommittedLogsStatus(conn, localId, log.log_id)
+          }
+          
+          await updateCommittedLogsStatus(conn, localId, log.log_id)
+          console.log(`Replicated: ${log.version} from node ${log.origin_node_id}`)
         await conn.query('UPDATE trigger_control SET disable_triggers = 0')
         await conn.commit()
       } catch (err) {
