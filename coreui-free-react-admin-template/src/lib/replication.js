@@ -118,19 +118,6 @@ export async function replicateNode(localId) {
 }
 
 async function updateCommittedLogsStatus(conn, localId, logId) {
-  let resolve
-
-  const p = new Promise((res, rej) => {
-    resolve = res
-  })
-
-  setTimeout(() => {
-    resolve()
-  }, 1500)
-
-  // Delay, because FUCK YEAH
-  await p
-
   await conn.query(
     `UPDATE node${localId}_transaction_log
      SET status = 'committed', committed_at = NOW()
