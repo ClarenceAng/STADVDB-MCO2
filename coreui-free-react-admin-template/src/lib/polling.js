@@ -1,10 +1,11 @@
 import { dbNodes } from '../../server.js'
+import { replicateNode } from './replication.js'
 
-async function applyLogsBatch(localDB, sourceNodeId, logs, localTable) {
+async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) {
   if (logs.length === 0) return
 
   console.log(
-    `[Node${localDB.nodeId}] Applying ${logs.length} logs from Node${sourceNodeId} into ${localTable}`,
+    `[Node ${localId}] Applying ${logs.length} logs from Node ${sourceNodeId} into ${localTable}`,
   )
 
   const conn = await localDB.getConnection()
@@ -18,19 +19,20 @@ async function applyLogsBatch(localDB, sourceNodeId, logs, localTable) {
         const parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload
 
         await conn.query(
-          `INSERT INTO ${localTable} (operation_type, payload, version, status, created_at, committed_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO ${localTable} (operation_type, payload, version, status, origin_node_id, created_at, committed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             operation_type,
             JSON.stringify(parsedPayload),
             version,
             'pending',
+            sourceNodeId,
             created_at,
             committed_at,
           ],
         )
 
-        console.log(`[Node${localDB.nodeId}] Inserted log ${log_id} from Node${sourceNodeId}`)
+        console.log(`[Node ${localId}] Inserted log ${log_id} from Node ${sourceNodeId}`)
 
         if (new Date(created_at) > maxTimestamp) maxTimestamp = new Date(created_at)
       }
@@ -40,14 +42,12 @@ async function applyLogsBatch(localDB, sourceNodeId, logs, localTable) {
         maxTimestamp,
         sourceNodeId,
       ])
-      console.log(
-        `[Node${localDB.nodeId}] Updated latest_log for Node${sourceNodeId} to ${maxTimestamp}`,
-      )
+      console.log(`[Node ${localId}] Updated latest_log for Node${sourceNodeId} to ${maxTimestamp}`)
 
       await conn.commit()
     } catch (err) {
       await conn.rollback()
-      console.error(`[Node${localDB.nodeId}] Failed applying logs from Node${sourceNodeId}:`, err)
+      console.error(`[Node ${localId}] Failed applying logs from Node${sourceNodeId}:`, err)
       throw err
     }
   } finally {
@@ -59,7 +59,7 @@ async function pollNode(localId, remoteId, filterFunc = null) {
   const localDB = dbNodes[localId]
   const remoteDB = dbNodes[remoteId]
 
-  // set READ COMMITTED for each polling session
+  // set READ COMMITTED for each polling
   const conn = await remoteDB.getConnection()
   try {
     await conn.query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED')
@@ -74,9 +74,9 @@ async function pollNode(localId, remoteId, filterFunc = null) {
     // Fetch new logs
     const [logs] = await conn.query(
       `SELECT * FROM node${remoteId}_transaction_log 
-       WHERE created_at > ? 
+       WHERE created_at > ? AND origin_node_id != ?
        ORDER BY created_at ASC, log_id ASC`,
-      [lastApplied],
+      [lastApplied, localId],
     )
     console.log(`[Node${localId}] Fetched ${logs.length} new logs from Node${remoteId}`)
 
@@ -89,7 +89,7 @@ async function pollNode(localId, remoteId, filterFunc = null) {
     }
 
     // Apply logs
-    await applyLogsBatch(localDB, remoteId, filteredLogs, `node${localId}_transaction_log`)
+    await applyLogsBatch(localDB, localId, remoteId, filteredLogs, `node${localId}_transaction_log`)
   } finally {
     conn.release()
   }
@@ -131,9 +131,56 @@ async function pollNode3() {
   await pollNode(3, 1, filterTV)
 }
 
-/**
- * poll at certain intervals to prevent deadlocks
- */
-setInterval(() => pollNode1(), 1000)
-setTimeout(() => setInterval(() => pollNode2(), 1000), 100)
-setTimeout(() => setInterval(() => pollNode3(), 1000), 200)
+async function syncNode1() {
+  await pollNode1()
+  await replicateNode(1)
+}
+
+async function syncNode2() {
+  await pollNode2()
+  await replicateNode(2)
+}
+
+async function syncNode3() {
+  await pollNode3()
+  await replicateNode(3)
+}
+
+async function startNode1Polling() {
+  while (true) {
+    try {
+      await syncNode1()
+    } catch (err) {
+      console.error(`[Node1] Polling error:`, err)
+    }
+    // Wait 1 second before next poll
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+}
+
+async function startNode2Polling() {
+  while (true) {
+    try {
+      await syncNode2()
+    } catch (err) {
+      console.error(`[Node2] Polling error:`, err)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+}
+
+async function startNode3Polling() {
+  while (true) {
+    try {
+      await syncNode3()
+    } catch (err) {
+      console.error(`[Node3] Polling error:`, err)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+}
+
+// Start all polling loops
+startNode1Polling()
+setTimeout(() => startNode2Polling(), 100) // stagger slightly
+setTimeout(() => startNode3Polling(), 200)
