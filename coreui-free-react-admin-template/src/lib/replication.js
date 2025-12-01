@@ -65,7 +65,7 @@ export async function replicateNode(localId) {
               `UPDATE DimTitle
                SET tconst = ?, titleType = ?, primaryTitle = ?, originalTitle = ?, isAdult = ?,
                    startYear = ?, endYear = ?, genre1 = ?, genre2 = ?, genre3 = ?,
-                   dateCreated = ?, dateModified = ?
+                   dateCreated = ?, dateModified = ?, version = ?
                WHERE titleID = ? AND version < ?`,
               [
                 payload.tconst,
@@ -80,6 +80,7 @@ export async function replicateNode(localId) {
                 payload.genre3,
                 payload.dateCreated,
                 payload.dateModified,
+                log.version
                 payload.titleID,
                 log.version
               ],
