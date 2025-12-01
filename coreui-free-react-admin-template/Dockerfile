@@ -23,5 +23,5 @@ FROM node:18-alpine AS production
 WORKDIR /webapp
 
 # Expose the port the Express server listens on
-EXPOSE 3000
+EXPOSE 3333
 EXPOSE 4000

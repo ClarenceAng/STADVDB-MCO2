@@ -6,7 +6,7 @@ services:
     image: webapp:latest
     container_name: webapp
     ports:
-      - "3000:3000"
+      - "3333:3333"
       - "4000:4000"
     environment:
       NODE_ENV: production

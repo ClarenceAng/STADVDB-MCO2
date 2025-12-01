@@ -16,7 +16,7 @@
     "build": "vite build",
     "lint": "eslint",
     "serve": "vite preview",
-    "start": "concurrently --kill-others \"vite\" \"node server.js\""
+    "start": "concurrently --kill-others \"vite --port 3333\" \"node server.js\""
   },
   "dependencies": {
     "@coreui/chartjs": "^4.1.0",

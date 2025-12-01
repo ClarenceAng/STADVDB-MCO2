@@ -3,7 +3,7 @@
 ### Basic usage
 
 ``` bash
-# dev frontend server with hot reload at http://localhost:3000
+# dev frontend server with hot reload at http://localhost:3333
 # dev backend server at http://localhost:4000
 $ npm i 
 $ npm run start 
