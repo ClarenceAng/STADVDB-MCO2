@@ -75,23 +75,25 @@ app.post('/update', async (req, res) => {
   const body = req.body
   const node = req.query['node']
   const id = req.query['id']
-  const updateDraft = {
-    titleType: body.titleType,
-    primaryTitle: body.primaryTitle,
-    originalTitle: body.primaryTitle,
-    isAdult: body.isAdult,
-    startYear: body.startYear,
-    endYear: body.endYear,
-    genre1: body.genre1,
-    genre2: body.genre2,
-    genre3: body.genre3,
-  }
 
   // Read version first
-  const [r] = await dbNodes[node].query(`SELECT titleID, version FROM DimTitle WHERE titleID = ?`, [
-    id,
-  ])
+  const [r] = await dbNodes[node].query(`SELECT * FROM DimTitle WHERE titleID = ?`, [id])
+  const oldEntry = r[0]
   const version = r[0].version
+
+  // Create update draft
+  const updateDraft = {
+    titleType: body.titleType ?? oldEntry.titleType,
+    primaryTitle: body.primaryTitle ?? oldEntry.primaryTitle,
+    // Leave as is, relies on primaryTitle
+    originalTitle: body.primaryTitle ?? oldEntry.originalTitle,
+    isAdult: body.isAdult ?? oldEntry.isAdult,
+    startYear: body.startYear ?? oldEntry.startYear,
+    endYear: body.endYear ?? oldEntry.endYear,
+    genre1: body.genre1 ?? oldEntry.genre1,
+    genre2: body.genre2 ?? oldEntry.genre2,
+    genre3: body.genre3 ?? oldEntry.genre3,
+  }
 
   // Make sure updated row has same ver
   try {
@@ -133,8 +135,6 @@ app.post('/delete', async (req, res) => {
 app.get('/items', async (req, res) => {
   // Bruh we getting sql injection here AHAHAHAHAHAHA
   // OFC we ain't doing this in the real world
-  console.log(req)
-  console.log(req.query)
   const node = req.query['node']
   const pageSize = parseInt(req.query['ps'])
   const pageNumber = parseInt(req.query['page'])
