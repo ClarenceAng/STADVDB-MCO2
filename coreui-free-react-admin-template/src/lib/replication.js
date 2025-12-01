@@ -22,7 +22,7 @@ export async function replicateNode(localId) {
 
         switch (log.operation_type) {
           case 'INSERT':
-            await conn.query(
+            const [r] = await conn.query(
               `INSERT INTO DimTitle (
                 tconst, titleType, primaryTitle, originalTitle, isAdult,
                 startYear, endYear, genre1, genre2, genre3, dateCreated, dateModified
@@ -42,6 +42,10 @@ export async function replicateNode(localId) {
                 payload.dateModified,
               ],
             )
+            await conn.query(`UPDATE DimTitle SET titleID = ? WHERE titleID = ?`, [
+              payload.titleID,
+              r.insertId,
+            ])
             break
           case 'UPDATE':
             await conn.query(
