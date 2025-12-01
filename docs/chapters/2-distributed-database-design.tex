@@ -3,52 +3,65 @@
 %%
 \section{Distributed Database Design}
 
-% Using Exercise 5 Distributed Databases as your guide, present the setup of your distributed database.
+This section describes the architecture of the distributed database system, including the node configuration, data fragmentation strategy, replication mechanism, and the web application interface.
 
 \subsection{System Architecture}
-% Present the setup of your distributed database
-% - The data stored in each node
-% - The application use case (functionalities)
-% Provide illustrations and diagrams as necessary
 
-% TODO: Add system architecture diagram
-% \begin{figure}[h]
-%   \centering
-%   \includegraphics[width=\linewidth]{images/architecture.png}
-%   \caption{Three-Node Distributed Database System Architecture}
-%   \label{fig:architecture}
-% \end{figure}
-
-The distributed database system consists of three nodes deployed on separate machines:
+The system consists of three MySQL database nodes deployed on separate cloud servers. Each node runs independently and communicates with the others through MySQL replication channels. The nodes are configured as follows:
 
 \begin{itemize}
-    \item \textbf{Node 1 (Central Node):} Contains all rows in the main database, serving as the master node for data replication and coordination.
-    \item \textbf{Node 2:} Contains a horizontal partition of the data based on [specify fragmentation criterion, e.g., year < 2010].
-    \item \textbf{Node 3:} Contains the complementary horizontal partition based on [specify fragmentation criterion, e.g., year >= 2010].
+    \item \textbf{Node 1 (Central Node):} Contains all 100,000 records from the dataset. This node serves as the central coordinator and maintains the complete dataset for reference and recovery purposes.
+    \item \textbf{Node 2:} Contains records where \texttt{titleType} is one of \texttt{movie}, \texttt{short}, \texttt{video}, or \texttt{videoGame}. This partition holds non-television content.
+    \item \textbf{Node 3:} Contains records where \texttt{titleType} is not in the set above, primarily television-related content such as \texttt{tvSeries}, \texttt{tvEpisode}, \texttt{tvMovie}, and \texttt{tvSpecial}.
 \end{itemize}
 
-\subsection{Database Schema}
-% Present the database schema used across all nodes
-% Note: The schema is homogeneous across all nodes
+The three nodes are hosted on separate domains (\texttt{stadvdb1}, \texttt{stadvdb2}, \texttt{stadvdb3}) and communicate over the network using MySQL's native replication protocol.
 
-% TODO: Add database schema description
-% \begin{verbatim}
-% CREATE TABLE table_name (
-%     column1 datatype,
-%     column2 datatype,
-%     ...
-% );
-% \end{verbatim}
+\subsection{Database Schema}
+
+The system uses a homogeneous schema across all three nodes. Each node contains the \texttt{DimTitle} table with the following structure:
+
+\begin{verbatim}
+CREATE TABLE DimTitle (
+    titleID      INT PRIMARY KEY AUTO_INCREMENT,
+    tconst       VARCHAR(20),
+    titleType    VARCHAR(50),
+    primaryTitle VARCHAR(500),
+    originalTitle VARCHAR(500),
+    isAdult      TINYINT,
+    startYear    INT,
+    endYear      INT,
+    genre1       VARCHAR(50),
+    genre2       VARCHAR(50),
+    genre3       VARCHAR(50),
+    dateCreated  DATETIME,
+    dateModified DATETIME,
+    version      INT DEFAULT 0
+);
+\end{verbatim}
+
+The \texttt{version} column supports optimistic concurrency control by tracking the number of updates applied to each record. A trigger increments this value on each update operation.
 
 \subsection{Data Fragmentation Strategy}
-% Is the database homogeneous or heterogeneous?
-% How is data fragmented across the nodes?
 
-The distributed database follows a \textbf{homogeneous} design where the schema across all three nodes is identical. Data fragmentation is implemented using \textbf{horizontal fragmentation} based on [specify criterion].
+The system implements horizontal fragmentation based on the \texttt{titleType} attribute. This fragmentation criterion was selected because:
 
-% TODO: Explain fragmentation criteria and justify the choice
+\begin{enumerate}
+    \item It produces a logical separation of content types that aligns with potential use cases (e.g., a service dedicated to movies versus television content).
+    \item It creates partitions of comparable size, distributing the workload across nodes.
+    \item The \texttt{titleType} value is immutable for existing records, reducing the need for data migration between nodes.
+\end{enumerate}
+
+The fragmentation predicates are defined as:
+\begin{itemize}
+    \item Node 2: \texttt{titleType IN ('movie', 'short', 'video', 'videoGame')}
+    \item Node 3: \texttt{titleType NOT IN ('movie', 'short', 'video', 'videoGame')}
+\end{itemize}
+
+Nodes 2 and 3 contain non-overlapping subsets. The union of these subsets equals the complete dataset stored in Node 1.
 
 \subsection{Data Replication Strategy}
+
 % How is data replicated across the nodes?
 
 % TODO: Describe replication strategy
@@ -56,17 +69,18 @@ The distributed database follows a \textbf{homogeneous} design where the schema 
 % - Partial replication on Nodes 2 and 3
 
 \subsection{Web Application Overview}
-% Describe how the web application manages access to the distributed database
 
-% TODO: Add web application architecture diagram
-% \begin{figure}[h]
-%   \centering
-%   \includegraphics[width=\linewidth]{images/webapp-architecture.png}
-%   \caption{Web Application Architecture}
-%   \label{fig:webapp}
-% \end{figure}
+The web application consists of two components:
+
+\begin{enumerate}
+    \item \textbf{Frontend:} A React-based single-page application built using the CoreUI framework. The interface provides separate views for each node, allowing users to browse, search, insert, and update records.
+    \item \textbf{Backend:} An Express.js server that exposes REST API endpoints for database operations. The server maintains connection pools to all three database nodes and routes requests to the appropriate node based on the operation.
+\end{enumerate}
+
+The backend server runs on port 4000 and provides endpoints for reading records with pagination (\texttt{/items}), retrieving record counts (\texttt{/count}), and performing write operations. Each request specifies the target node, and the server executes the query against the corresponding database connection.
 
 \subsection{Update and Recovery Mechanism Overview}
+
 % Give an overview of the update and recovery mechanism as a prelude to Sections 3 and 4
 
 % TODO: Provide high-level overview
