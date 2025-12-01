@@ -262,7 +262,7 @@ const Dashboard = () => {
 
 const InsertModal = ({ setState }) => {
   const [entryDraft, setEntryDraft] = useState({
-    titleType: 'movie',
+    titleType: 'tvMovie',
     primaryTitle: '',
     isAdult: 0,
   })
