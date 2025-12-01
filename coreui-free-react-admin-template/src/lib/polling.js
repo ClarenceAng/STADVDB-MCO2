@@ -129,6 +129,7 @@ async function syncNode1() {
   try {
     await pollNode1()
     await replicateNode(1)
+    await sleep(500)
     await commitSelf(1)
   } catch (err) {
     console.error('[Node1] sync failed:', err)
