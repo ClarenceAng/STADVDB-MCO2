@@ -7,7 +7,7 @@ export async function replicateNode(localId) {
 
   try {
     const [pendingLogs] = await conn.query(
-      `SELECT * FROM node${localId}_transaction_log WHERE status = "pending" AND origin_node_id != ? ORDER BY created_at ASC, log_id ASC`,
+      `SELECT * FROM node${localId}_transaction_log WHERE status = "pending" AND origin_node_id != ? ORDER BY version ASC, created_at ASC, log_id ASC`,
       [localId],
     )
 
