@@ -128,9 +128,9 @@ async function pollNode3() {
 async function syncNode1() {
   try {
     await pollNode1()
-    await replicateNode(1)
-    await sleep(500)
     await commitSelf(1)
+    await sleep(500)
+    await replicateNode(1)
   } catch (err) {
     console.error('[Node1] sync failed:', err)
   }
@@ -139,8 +139,9 @@ async function syncNode1() {
 async function syncNode2() {
   try {
     await pollNode2()
-    await replicateNode(2)
     await commitSelf(2)
+    await sleep(500)
+    await replicateNode(2)
   } catch (err) {
     console.error('[Node2] sync failed:', err)
   }
@@ -149,8 +150,9 @@ async function syncNode2() {
 async function syncNode3() {
   try {
     await pollNode3()
-    await replicateNode(3)
     await commitSelf(3)
+    await sleep(500)
+    await replicateNode(3)
   } catch (err) {
     console.error('[Node3] sync failed:', err)
   }
