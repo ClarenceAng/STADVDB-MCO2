@@ -83,6 +83,7 @@ export async function replicateNode(localId) {
                 payload.titleID,
               ],
             )
+            console.log("Replicated: " + log.version)
             break
           case 'DELETE':
             await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])

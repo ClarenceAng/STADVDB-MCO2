@@ -106,6 +106,7 @@ app.post('/update', async (req, res) => {
       Object.values(updateDraft).map((s) => (!!s ? s : null)),
     )
     await dbNodes[node].query('COMMIT')
+    console.log("Updated")
     res.json({ id: id })
   } catch (e) {
     console.log(e)
