@@ -19,7 +19,14 @@ export async function replicateNode(localId) {
       })
 
       if (sameTitleLogs.length > 1) {
-        const max = sameTitleLogs.reduce((prev, next) => prev.version > next.version ? prev : next, [sameTitleLogs[0]])
+        const max = sameTitleLogs.reduce((prev, next) => {
+          if (prev.version == next.version) {
+            return prev.origin_node_id < next.origin_node_id ? prev : next
+          }
+          else {
+            return prev.version > next.version ? prev : next
+          }
+        }, [sameTitleLogs[0]])
         return log.log_id == max.log_id
       } else {
         return true        
