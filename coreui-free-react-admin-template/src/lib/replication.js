@@ -1,12 +1,14 @@
 import { dbNodes } from '../../server.js'
 
+// replication for transasction that isnt itself
 export async function replicateNode(localId) {
   const localDB = dbNodes[localId]
   const conn = await localDB.getConnection()
 
   try {
     const [pendingLogs] = await conn.query(
-      `SELECT * FROM node${localId}_transaction_log WHERE status = "pending" ORDER BY created_at ASC, log_id ASC`,
+      `SELECT * FROM node${localId}_transaction_log WHERE status = "pending" AND origin_node_id != ? ORDER BY created_at ASC, log_id ASC`,
+      [localId],
     )
 
     if (!pendingLogs.length) return
@@ -79,6 +81,8 @@ export async function replicateNode(localId) {
       }
     }
   } finally {
+    await conn.query('UPDATE trigger_control SET disable_triggers = 0')
+    await conn.commit()
     conn.release()
   }
 }
@@ -97,4 +101,49 @@ async function updateCommittedLogsStatus(conn, localId, logId) {
      WHERE node_id = ?`,
     [localId],
   )
+}
+export async function commitSelf(localId) {
+  const localDB = dbNodes[localId]
+  const conn = await localDB.getConnection()
+
+  try {
+    await conn.beginTransaction()
+
+    const [pendingLogs] = await conn.query(
+      `SELECT * FROM node${localId}_transaction_log 
+       WHERE status = "pending" AND origin_node_id = ? 
+       ORDER BY created_at ASC, log_id ASC`,
+      [localId],
+    )
+
+    if (!pendingLogs.length) {
+      await conn.commit()
+      return
+    }
+
+    for (const log of pendingLogs) {
+      // simply mark own logs as committed — do NOT apply them
+      await conn.query(
+        `UPDATE node${localId}_transaction_log 
+         SET status = 'committed', committed_at = NOW() 
+         WHERE log_id = ?`,
+        [log.log_id],
+      )
+    }
+
+    // update last commit
+    await conn.query(
+      `UPDATE latest_log_table 
+         SET latest_commit = NOW() 
+         WHERE node_id = ?`,
+      [localId],
+    )
+
+    await conn.commit()
+  } catch (err) {
+    console.error(`[Node${localId}] Failed to commit self logs:`, err)
+    await conn.rollback()
+  } finally {
+    conn.release()
+  }
 }
