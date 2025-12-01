@@ -35,12 +35,75 @@ export const dbNodes = {
   }),
 }
 
-// // CREATE
-// app.post('/items', async (req, res) => {
-//   const { name } = req.body
-//   const [r] = await db.query('INSERT INTO items (name) VALUES (?)', [name])
-//   res.json({ id: r.insertId })
-// })
+// Create new entry, per node
+app.post('/create', async (req, res) => {
+  const body = req.body
+  const node = req.query['node']
+  const insertDraft = {
+    titleType: body.titleType,
+    primaryTitle: body.primaryTitle,
+    originalTitle: body.primaryTitle,
+    isAdult: body.isAdult,
+    startYear: body.startYear,
+    endYear: body.endYear,
+    genre1: body.genre1,
+    genre2: body.genre2,
+    genre3: body.genre3,
+  }
+
+  try {
+    await dbNodes[node].query('START TRANSACTION')
+    const [r] = await dbNodes[node].query(
+      `INSERT INTO DimTitle (${Object.keys(insertDraft).join(',')}) VALUES (${Object.keys(
+        insertDraft,
+      )
+        .map(() => '?')
+        .join(',')})`,
+      Object.values(insertDraft).map((s) => (!!s ? s : null)),
+    )
+    await dbNodes[node].query('COMMIT')
+    res.json({ id: r.insertId })
+  } catch (e) {
+    console.error(e)
+    await dbNodes[node].query('ROLLBACK')
+    res.json({ id: null })
+  }
+})
+
+// Update specific entry, per node
+app.post('/update', async (req, res) => {
+  const body = req.body
+  const node = req.query['node']
+  const id = req.query['id']
+  const updateDraft = {
+    titleType: body.titleType,
+    primaryTitle: body.primaryTitle,
+    originalTitle: body.primaryTitle,
+    isAdult: body.isAdult,
+    startYear: body.startYear,
+    endYear: body.endYear,
+    genre1: body.genre1,
+    genre2: body.genre2,
+    genre3: body.genre3,
+  }
+
+  try {
+    await dbNodes[node].query('START TRANSACTION')
+    const [r] = await dbNodes[node].query(
+      `UPDATE DimTitle SET ${Object.keys(updateDraft)
+        .filter((key) => !!updateDraft[key])
+        .map((key) => `${key} = '${updateDraft[key]}'`)
+        .join(',')} WHERE titleID = ${id}`,
+      Object.values(updateDraft).map((s) => (!!s ? s : null)),
+    )
+    await dbNodes[node].query('COMMIT')
+    res.json({ id: id })
+  } catch (e) {
+    console.log(e)
+    await dbNodes[node].query('ROLLBACK')
+    res.json({ id: null })
+  }
+})
 
 // Read all
 app.get('/items', async (req, res) => {
