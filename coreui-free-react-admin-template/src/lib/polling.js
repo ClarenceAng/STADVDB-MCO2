@@ -77,6 +77,8 @@ export async function pollNode(localId, remoteId, filterFunc = null) {
       console.log(`[Node${localId}] ${logs.length - filteredLogs.length} logs filtered out`)
     }
 
+    console.log(filteredLogs)
+
     await applyLogsBatch(localDB, localId, remoteId, filteredLogs, `node${localId}_transaction_log`)
   } catch (err) {
     console.error(`[Node${localId}] Error polling Node${remoteId}:`, err)
