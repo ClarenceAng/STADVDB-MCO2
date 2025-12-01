@@ -112,8 +112,8 @@ app.get('/items', async (req, res) => {
   console.log(req)
   console.log(req.query)
   const node = req.query['node']
-  const pageSize = req.query['ps']
-  const pageNumber = req.query['page']
+  const pageSize = parseInt(req.query['ps'])
+  const pageNumber = parseInt(req.query['page'])
   const keywords = req.query['keywords']?.split(',') || []
   const query = keywords.length
     ? `SELECT * FROM DimTitle WHERE ${keywords.map((k) => `primaryTitle LIKE '%${k}%'`).join(' AND ')} LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
