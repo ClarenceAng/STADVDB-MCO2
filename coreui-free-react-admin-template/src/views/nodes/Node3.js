@@ -22,7 +22,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { coolGetFetch, coolPostFetch } from '../../lib/fetch'
 
-const SERVER = process.env.SERVER
+const SERVER = import.meta.env.VITE_API_URL
 const NODE = 3
 const NodeGenres = [
   null,
