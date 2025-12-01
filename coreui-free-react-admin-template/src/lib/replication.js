@@ -13,7 +13,7 @@ export async function replicateNode(localId) {
 
     if (!pendingLogs.length) return
 
-    pendingLogs.filter((log) => {
+    const filteredLogs = pendingLogs.filter((log) => {
       const sameTitleLogs = pendingLogs.filter((log2) => {
         return log.payload.titleID == log2.payload.titleID
       })
@@ -26,7 +26,7 @@ export async function replicateNode(localId) {
       }
     })
 
-    for (const log of pendingLogs) {
+    for (const log of filteredLogs) {
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
 
       try {
