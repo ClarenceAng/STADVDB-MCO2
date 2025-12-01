@@ -90,7 +90,7 @@ export async function pollNode(localId, remoteId, filterFunc = null) {
 const filterMisc = (log) => {
   try {
     const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
-    if (log.operation_type === 'UPDATE') return true
+    if (log.operation_type === 'UPDATE' || log.operation_type === 'DELETE') return true
     return payload.titleType && !payload.titleType.toLowerCase().startsWith('tv')
   } catch {
     return false
@@ -100,7 +100,7 @@ const filterMisc = (log) => {
 const filterTV = (log) => {
   try {
     const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
-    if (log.operation_type === 'UPDATE') return true
+    if (log.operation_type === 'UPDATE' || log.operation_type === 'DELETE') return true
     return payload.titleType && payload.titleType.toLowerCase().startsWith('tv')
   } catch {
     return false
