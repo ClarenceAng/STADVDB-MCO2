@@ -1,0 +1,119 @@
+%%
+%% Section 3: Concurrency Control and Consistency
+%%
+\section{Concurrency Control and Consistency}
+
+% How do you maintain global concurrency control through your web application and update strategy?
+
+\subsection{Update Strategy}
+% Describe your update strategy to maintain database consistency
+% - Updates in Node 2 or Node 3 should be replicated to the central node
+% - Updates in the central node should be replicated to Node 2 or Node 3
+
+% TODO: Describe whether master-slave, multi-master, or other setup
+% Justify your choice
+
+\subsubsection{Replication Algorithm}
+% Illustrate with the use of an algorithm (not source code)
+
+% TODO: Add algorithm
+% \begin{algorithm}
+% \caption{Update Replication Algorithm}
+% \begin{algorithmic}[1]
+% \State // Pseudocode for update replication
+% \If{update on Node 2 or Node 3}
+%     \State Replicate to Central Node (Node 1)
+% \ElsIf{update on Central Node}
+%     \State Determine target node based on fragmentation criteria
+%     \State Replicate to appropriate node (Node 2 or Node 3)
+% \EndIf
+% \end{algorithmic}
+% \end{algorithm}
+
+\subsubsection{Data Transparency}
+% How is data transparency supported by your data replication and update strategy?
+
+% TODO: Explain how users are shielded from the distributed nature of the database
+
+\subsection{Isolation Level Selection}
+% Which isolation level is most appropriate for your web application?
+% Justify based on experiments
+
+The four isolation levels tested are:
+\begin{enumerate}
+    \item \textbf{Read Uncommitted:} Allows dirty reads, non-repeatable reads, and phantom reads.
+    \item \textbf{Read Committed:} Prevents dirty reads but allows non-repeatable reads and phantom reads.
+    \item \textbf{Repeatable Read:} Prevents dirty reads and non-repeatable reads but allows phantom reads.
+    \item \textbf{Serializable:} Prevents all anomalies but has the highest overhead.
+\end{enumerate}
+
+% TODO: Add table comparing isolation levels and their performance
+% \begin{table}[h]
+%   \caption{Isolation Level Comparison}
+%   \label{tab:isolation}
+%   \begin{tabular}{lcccc}
+%     \toprule
+%     \textbf{Isolation Level} & \textbf{Throughput} & \textbf{Consistency} & \textbf{Anomalies} \\
+%     \midrule
+%     Read Uncommitted & High & Low & All \\
+%     Read Committed & Medium-High & Medium & Some \\
+%     Repeatable Read & Medium & High & Few \\
+%     Serializable & Low & Highest & None \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+\subsection{Methodology}
+% Explain the methodology employed to simulate global concurrency control
+
+\subsubsection{Experimental Setup}
+% Describe the setup of your experiments
+
+% TODO: Describe hardware, software, network configuration
+
+\subsubsection{Test Cases}
+% Show the concurrent transactions used to simulate the experiment/test cases
+
+\paragraph{Case \#1: Concurrent Read Operations}
+% Concurrent transactions in two or more nodes are reading the same data item
+
+% TODO: Describe test case setup and transactions
+
+\paragraph{Case \#2: Concurrent Read-Write Operations}
+% At least one transaction is writing (update/delete) and other concurrent transactions are reading the same data item
+
+% TODO: Describe test case setup and transactions
+
+\paragraph{Case \#3: Concurrent Write Operations}
+% Concurrent transactions in two or more nodes are writing (update/delete) the same data item
+
+% TODO: Describe test case setup and transactions
+
+\subsubsection{Validation Method}
+% How did you validate that the concurrency control, replication and update strategies leave the database in a consistent state?
+
+% TODO: Describe validation approach
+
+\subsection{Results and Discussion}
+% Show your test results and give your analysis
+% Use tables and diagrams accordingly
+
+% TODO: Add results tables and analysis
+% \begin{table}[h]
+%   \caption{Concurrency Control Test Results}
+%   \label{tab:concurrency-results}
+%   \begin{tabular}{lccc}
+%     \toprule
+%     \textbf{Test Case} & \textbf{Trial 1} & \textbf{Trial 2} & \textbf{Trial 3} \\
+%     \midrule
+%     Case \#1 & Pass/Fail & Pass/Fail & Pass/Fail \\
+%     Case \#2 & Pass/Fail & Pass/Fail & Pass/Fail \\
+%     Case \#3 & Pass/Fail & Pass/Fail & Pass/Fail \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+% Discuss key insights from your replication and update strategies
+% Support with relevant literature
+
+% TODO: Analyze results and compare with prior works

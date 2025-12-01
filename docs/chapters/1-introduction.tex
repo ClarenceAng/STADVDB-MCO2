@@ -1,0 +1,22 @@
+%%
+%% Section 1: Introduction
+%%
+\section{Introduction}
+
+A distributed database is a collection of multiple, logically interrelated databases distributed over a computer network \cite{Ozsu2011}. Unlike centralized databases, distributed database systems store data across multiple nodes, enabling data access from different locations while maintaining a unified view of the database. A distributed database management system (DDBMS) coordinates data storage and retrieval across these nodes, ensuring that modifications at one location propagate to other locations as required by the system's consistency model.
+
+Distributed databases address several limitations of centralized systems. First, they provide improved availability: if one node fails, other nodes can continue to serve requests. Second, they enable horizontal scalability by distributing data and workload across multiple machines. Third, they reduce network latency for geographically distributed users by placing data closer to where it is accessed \cite{Ozsu2011}. However, these benefits introduce challenges in maintaining data consistency, handling concurrent transactions, and recovering from failures.
+
+This paper presents the design and implementation of a three-node distributed database system using the IMDb dataset. The system uses horizontal fragmentation to partition data across nodes based on title type, with Node 1 serving as the central node containing all records, while Nodes 2 and 3 store non-overlapping subsets. A web application provides access to the distributed database, routing queries and updates to the appropriate nodes while maintaining data consistency through replication mechanisms.
+
+The system implements concurrency control to handle simultaneous transactions across nodes and recovery strategies to address node failures. We evaluate the system under different isolation levels and simulate failure scenarios to assess the effectiveness of our replication and recovery strategies.
+
+\subsection{Objectives}
+
+The objectives of this project are:
+\begin{enumerate}
+    \item To design and implement a three-node distributed database system with horizontal fragmentation and multi-master replication.
+    \item To develop concurrency control mechanisms that maintain data consistency across concurrent read and write transactions.
+    \item To implement recovery strategies that ensure continued database availability during node failures and correct state restoration upon node recovery.
+    \item To evaluate the trade-offs between isolation levels in terms of concurrency throughput and data consistency.
+\end{enumerate}
