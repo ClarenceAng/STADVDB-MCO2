@@ -87,14 +87,21 @@ app.post('/update', async (req, res) => {
     genre3: body.genre3,
   }
 
+  // Read version first
+  const [r] = await dbNodes[node].query(`SELECT titleID, version FROM DimTitle WHERE titleID = ?`, [
+    id,
+  ])
+  const version = r[0].version
+
+  // Make sure updated row has same ver
   try {
     await dbNodes[node].query('START TRANSACTION')
     const [r] = await dbNodes[node].query(
       `UPDATE DimTitle SET ${Object.keys(updateDraft)
         .filter((key) => !!updateDraft[key])
         .map((key) => `${key} = '${updateDraft[key]}'`)
-        .join(',')} WHERE titleID = ${id}`,
-      Object.values(updateDraft).map((s) => (!!s ? s : null)),
+        .join(',')} WHERE titleID = ${id} AND version = ?`,
+      [...Object.values(updateDraft).map((s) => (!!s ? s : null)), version],
     )
     await dbNodes[node].query('COMMIT')
     res.json({ id: id })
@@ -118,9 +125,7 @@ app.get('/items', async (req, res) => {
   const query = keywords.length
     ? `SELECT * FROM DimTitle WHERE ${keywords.map((k) => `primaryTitle LIKE '%${k}%'`).join(' AND ')} LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
     : `SELECT * FROM DimTitle LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
-  console.log(query)
   const [rows] = await dbNodes[node].query(query)
-  console.log(rows)
   res.json(rows)
 })
 
@@ -136,24 +141,5 @@ app.get('/count', async (req, res) => {
   const [count] = await dbNodes[node].query(query)
   res.json({ count: count[0]['COUNT(*)'] })
 })
-
-// // READ ONE
-// app.get('/items/:id', async (req, res) => {
-//   const [rows] = await db.query('SELECT * FROM items WHERE id = ?', [req.params.id])
-//   res.json(rows[0] || null)
-// })
-
-// // UPDATE
-// app.put('/items/:id', async (req, res) => {
-//   const { name } = req.body
-//   await db.query('UPDATE items SET name = ? WHERE id = ?', [name, req.params.id])
-//   res.json({ ok: true })
-// })
-
-// // DELETE
-// app.delete('/items/:id', async (req, res) => {
-//   await db.query('DELETE FROM items WHERE id = ?', [req.params.id])
-//   res.json({ ok: true })
-// })
 
 app.listen(4000, () => console.log('Running server on 4000'))
