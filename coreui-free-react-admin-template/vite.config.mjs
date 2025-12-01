@@ -43,6 +43,11 @@ export default defineConfig(() => {
       host: '0.0.0.0',
       strictPort: true,
       port: 3333,
+      allowedHosts: [
+        'stadvdb1.rinaldolee.com',
+        'stadvdb2.rinaldolee.com',
+        'stadvdb3.rinaldolee.com',
+      ],
       proxy: {
         // https://vitejs.dev/config/server-options.html
       },
