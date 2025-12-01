@@ -17,7 +17,7 @@ import {
   CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilMovie, cilPen, cilPlus, cilSearch } from '@coreui/icons'
+import { cilMovie, cilPen, cilPlus, cilSearch, cilTrash } from '@coreui/icons'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { coolGetFetch, coolPostFetch } from '../../lib/fetch'
@@ -66,6 +66,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [insertModal, setInsertModal] = useState(false)
   const [editModal, setEditModal] = useState(false)
+  const [deleteModal, setDeleteModal] = useState(false)
   const [reload, setReload] = useState([])
   const [selectedEntry, setSelectedEntry] = useState({})
   const pageCount = Math.ceil(nodeCount / pageSize)
@@ -159,6 +160,13 @@ const Dashboard = () => {
             setState={setEditModal}
           />
         </CModal>
+        <CModal visible={deleteModal} onClose={() => setDeleteModal(false)}>
+          <DeleteModal
+            initialDraft={selectedEntry}
+            selectedId={selectedEntry.titleID}
+            setState={setDeleteModal}
+          />
+        </CModal>
       </div>
       <br />
       <div className="bg-black">
@@ -199,9 +207,18 @@ const Dashboard = () => {
                   <CButton
                     variant="ghost"
                     color="dark"
+                    className="mx-1"
                     onClick={() => (setEditModal(true), setSelectedEntry(item))}
                   >
                     <CIcon icon={cilPen}></CIcon>
+                  </CButton>
+                  <CButton
+                    variant="ghost"
+                    color="danger"
+                    className="mx-1"
+                    onClick={() => (setDeleteModal(true), setSelectedEntry(item))}
+                  >
+                    <CIcon icon={cilTrash}></CIcon>
                   </CButton>
                 </CTableDataCell>
               </CTableRow>
@@ -360,7 +377,7 @@ const InsertModal = ({ setState }) => {
               return alert('Title type is required but missing')
             }
             coolPostFetch(
-              `http://localhost:4000/create?node=${NODE}`,
+              `${SERVER}/create?node=${NODE}`,
               entryDraft,
               (v) => (console.log(v), alert('Succesfully inserted entry!'), setState(false)),
             ).catch((e) => (console.log(e), alert('Something went wrong...'), setState(false)))
@@ -479,13 +496,51 @@ const EditModal = ({ initialDraft, selectedId, setState }) => {
           color="primary"
           onClick={() => {
             coolPostFetch(
-              `http://localhost:4000/update?node=${NODE}&id=${selectedId}`,
+              `${SERVER}/update?node=${NODE}&id=${selectedId}`,
               entryDraft,
               (v) => (console.log(v), alert('Succesfully updated entry!'), setState(false)),
             ).catch((e) => (console.log(e), alert('Something went wrong...'), setState(false)))
           }}
         >
           Save changes
+        </CButton>
+      </CModalFooter>
+    </>
+  )
+}
+
+const DeleteModal = ({ initialDraft, selectedId, setState }) => {
+  const [entryDraft, setEntryDraft] = useState(initialDraft)
+  const setter = (key, value) => {
+    setEntryDraft({
+      ...entryDraft,
+      [key]: value,
+    })
+  }
+
+  return (
+    <>
+      <CModalHeader>
+        <CModalTitle>Delete entry: {entryDraft.primaryTitle ?? 'No Title'}</CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <div>Are you sure you want to delete this?</div>
+      </CModalBody>
+      <CModalFooter>
+        <CButton
+          color="danger"
+          style={{
+            color: 'white',
+          }}
+          onClick={() => {
+            coolPostFetch(
+              `${SERVER}/delete?node=${NODE}&id=${selectedId}`,
+              entryDraft,
+              (v) => (console.log(v), alert('Succesfully deleted entry!'), setState(false)),
+            ).catch((e) => (console.log(e), alert('Something went wrong...'), setState(false)))
+          }}
+        >
+          Delete
         </CButton>
       </CModalFooter>
     </>

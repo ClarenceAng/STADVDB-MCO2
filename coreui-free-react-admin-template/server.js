@@ -100,13 +100,30 @@ app.post('/update', async (req, res) => {
       `UPDATE DimTitle SET ${Object.keys(updateDraft)
         .filter((key) => !!updateDraft[key])
         .map((key) => `${key} = '${updateDraft[key]}'`)
-        .join(',')} WHERE titleID = ${id} AND version = ?`,
-      [...Object.values(updateDraft).map((s) => (!!s ? s : null)), version],
+        .join(',')} WHERE titleID = ${id} AND version = ${version}`,
+      Object.values(updateDraft).map((s) => (!!s ? s : null)),
     )
     await dbNodes[node].query('COMMIT')
     res.json({ id: id })
   } catch (e) {
     console.log(e)
+    await dbNodes[node].query('ROLLBACK')
+    res.json({ id: null })
+  }
+})
+
+// Delete entry, per node
+app.post('/delete', async (req, res) => {
+  const node = req.query['node']
+  const id = req.query['id']
+
+  try {
+    await dbNodes[node].query('START TRANSACTION')
+    const [r] = await dbNodes[node].query(`DELETE FROM DimTitle WHERE titleID = ?`, [id])
+    await dbNodes[node].query('COMMIT')
+    res.json({ id: id })
+  } catch (e) {
+    console.error(e)
     await dbNodes[node].query('ROLLBACK')
     res.json({ id: null })
   }
