@@ -99,7 +99,7 @@ export async function replicateNode(localId) {
           }
           
           await updateCommittedLogsStatus(conn, localId, log.log_id)
-          console.log("Replicated: " + log.version)
+          console.log(`Replicated: ${log.version} from node ${log.origin_node_id}`)
         await conn.query('UPDATE trigger_control SET disable_triggers = 0')
         await conn.commit()
       } catch (err) {
