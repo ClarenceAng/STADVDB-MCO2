@@ -65,7 +65,7 @@ export async function pollNode(localId, remoteId, filterFunc = null) {
 
     const [logs] = await conn.query(
       `SELECT * FROM node${remoteId}_transaction_log 
-       WHERE created_at >= ? AND origin_node_id != ?
+       WHERE created_at > ? AND origin_node_id != ?
        ORDER BY version ASC, created_at ASC, log_id ASC`,
       [lastApplied, localId],
     )
