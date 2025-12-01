@@ -118,7 +118,9 @@ app.get('/items', async (req, res) => {
   const query = keywords.length
     ? `SELECT * FROM DimTitle WHERE ${keywords.map((k) => `primaryTitle LIKE '%${k}%'`).join(' AND ')} LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
     : `SELECT * FROM DimTitle LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
+  console.log(query)
   const [rows] = await dbNodes[node].query(query)
+  console.log(rows)
   res.json(rows)
 })
 
