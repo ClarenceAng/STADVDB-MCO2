@@ -83,14 +83,14 @@ export async function replicateNode(localId) {
                 payload.titleID,
               ],
             )
-            console.log("Replicated: " + log.version)
             break
-          case 'DELETE':
-            await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])
+            case 'DELETE':
+              await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])
             break
-        }
-
-        await updateCommittedLogsStatus(conn, localId, log.log_id)
+          }
+          
+          await updateCommittedLogsStatus(conn, localId, log.log_id)
+          console.log("Replicated: " + log.version)
         await conn.query('UPDATE trigger_control SET disable_triggers = 0')
         await conn.commit()
       } catch (err) {
