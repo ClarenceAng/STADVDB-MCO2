@@ -22,6 +22,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { coolGetFetch, coolPostFetch } from '../../lib/fetch'
 
+const SERVER = process.env.SERVER
 const NODE = 2
 const NodeGenres = [
   null,
@@ -83,8 +84,8 @@ const Dashboard = () => {
 
   // Fetch data on mount
   useEffect(() => {
-    let dataUrl = `http://localhost:4000/items?node=${NODE}&page=${page}&ps=${pageSize}`
-    let countUrl = `http://localhost:4000/count?node=${NODE}`
+    let dataUrl = `${SERVER}/items?node=${NODE}&page=${page}&ps=${pageSize}`
+    let countUrl = `${SERVER}/count?node=${NODE}`
     if (!!search.trim()) {
       const kw = `&keywords=${search
         .split(' ')
