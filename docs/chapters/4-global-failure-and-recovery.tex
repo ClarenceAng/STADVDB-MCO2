@@ -3,99 +3,214 @@
 %%
 \section{Global Failure and Recovery}
 
+This section describes the failure detection and recovery mechanisms implemented in the distributed database system. The transaction log-based architecture provides inherent support for handling node failures and ensuring data consistency upon recovery.
+
 \subsection{Recovery Strategy}
 
-\subsubsection{Recovery Operation Process}
-% What happens during a recovery operation?
-% What facilities did you build to support your distributed database during a recovery operation?
+\subsubsection{Failure Detection}
 
-% TODO: Describe recovery process
+The system detects node failures through connection timeouts during the polling process. When a node attempts to establish a connection to a remote node and the connection fails, the polling mechanism catches the exception and skips that node for the current synchronization cycle. This approach allows the system to continue operating with the remaining available nodes.
+
+The failure detection occurs at the beginning of each polling cycle:
+
+\begin{enumerate}
+    \item The local node attempts to acquire a database connection from the remote node's connection pool.
+    \item If the connection fails (timeout, network unreachable, or server unavailable), the error is logged.
+    \item The polling function returns early, skipping replication from that node.
+    \item The next polling cycle (1 second later) retries the connection.
+\end{enumerate}
+
+This design ensures that a single node failure does not halt the entire system. Other nodes continue to operate independently and synchronize with each other.
+
+\subsubsection{Recovery Operation Process}
+
+When a failed node comes back online, the recovery process executes automatically through the existing polling mechanism:
+
+\begin{enumerate}
+    \item The recovered node's database server becomes available and accepts connections.
+    \item On the next polling cycle, remote nodes successfully connect to the recovered node.
+    \item Each remote node queries the recovered node's transaction log for entries created after the \texttt{latest\_log} timestamp stored locally.
+    \item New log entries are fetched, filtered according to fragmentation predicates (for Nodes 2 and 3), and inserted into the local transaction log.
+    \item The replication process applies pending logs to the local \texttt{DimTitle} table.
+    \item The \texttt{latest\_log\_table} is updated to reflect the most recent synchronized timestamp.
+\end{enumerate}
+
+The recovered node simultaneously polls other nodes for transactions it missed during the outage, applying the same process in reverse.
 
 \subsubsection{Recovery Algorithm}
-% Illustrate with the use of an algorithm (not source code)
 
-% TODO: Add recovery algorithm
-% \begin{algorithm}
-% \caption{Node Recovery Algorithm}
-% \begin{algorithmic}[1]
-% \State // Pseudocode for node recovery
-% \When{node comes back online}
-%     \State Check for missed transactions from transaction log
-%     \State Apply missed transactions in order
-%     \State Synchronize with central node
-%     \State Resume normal operations
-% \EndWhen
-% \end{algorithmic}
-% \end{algorithm}
+Algorithm~\ref{alg:recovery} presents the recovery procedure executed when a node rejoins the system.
+
+\begin{algorithm}
+\caption{Node Recovery Algorithm}
+\label{alg:recovery}
+\begin{algorithmic}[1]
+\Procedure{RecoverNode}{localId}
+    \For{each remoteId in \{1, 2, 3\} $\setminus$ \{localId\}}
+        \State conn $\gets$ ConnectToNode(remoteId)
+        \If{conn = NULL}
+            \State \textbf{continue} \Comment{Skip unavailable node}
+        \EndIf
+        \State lastApplied $\gets$ GetLastLogTimestamp(localId, remoteId)
+        \State logs $\gets$ FetchLogs(conn, remoteId, lastApplied)
+        \State filteredLogs $\gets$ ApplyFilter(logs, localId)
+        \For{each log in filteredLogs}
+            \State InsertIntoLocalLog(log)
+        \EndFor
+        \State UpdateLastLogTimestamp(localId, remoteId)
+    \EndFor
+    \State \Call{ReplicatePendingLogs}{localId}
+\EndProcedure
+\Procedure{ReplicatePendingLogs}{localId}
+    \State pendingLogs $\gets$ GetPendingLogs(localId)
+    \For{each log in pendingLogs}
+        \State DisableTriggers()
+        \State ApplyOperation(log.operationType, log.payload)
+        \State MarkAsCommitted(log.logId)
+        \State EnableTriggers()
+    \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+The algorithm ensures that logs are applied in the correct order by sorting on version number, creation timestamp, and log ID. This ordering preserves the causality and prevents conflicts from concurrent updates.
 
 \subsection{Methodology}
-% Explain the methodology employed to simulate global failure and recovery
 
 \subsubsection{Experimental Setup}
-% Describe the setup of your experiments
 
-% TODO: Describe how failures were simulated (e.g., network interruption, process termination)
+The failure recovery tests were conducted on the three-node distributed database system with the following configuration:
+
+\begin{itemize}
+    \item Three MySQL database servers hosted on separate cloud instances
+    \item Express.js backend server running the polling and replication processes
+    \item Polling interval set to 1 second
+    \item Network connectivity between all nodes under normal conditions
+\end{itemize}
+
+Node failures were simulated by stopping the MySQL service on the target node. This approach replicates realistic failure scenarios where a database server becomes unavailable due to hardware failure, software crash, or network partition.
 
 \subsubsection{Test Cases}
-% Present the test cases used to simulate each of the test cases in global failure and recovery
 
-\paragraph{Case \#1: Central Node Write Failure During Replication from Node 2/3}
-% When attempting to replicate the transaction from Node 2 or Node 3 to the central node, 
-% the transaction fails in writing (insert/update) to the central node.
+Four test cases were designed to validate the recovery mechanisms under different failure scenarios.
 
-% TODO: Describe test case setup and expected behavior
+\begin{table}[h]
+\small
+\begin{tabular}{|p{0.95\columnwidth}|}
+\hline
+\textbf{Case \#1: Central Node Write Failure During Replication} \\[0.5em]
+This test case simulates a scenario where Node 2 or Node 3 attempts to replicate a transaction to Node 1, but Node 1 is unavailable. \\[0.5em]
+\textit{Procedure:} \\
+1. Stop the MySQL service on Node 1 (central node). \\
+2. Insert a new record through the web application targeting Node 2 or Node 3. \\
+3. Observe that the transaction completes locally and is recorded in the local transaction log with status \texttt{pending}. \\
+4. Verify that the polling mechanism logs a connection failure when attempting to reach Node 1. \\[0.5em]
+\textit{Expected Behavior:} The local transaction succeeds. The transaction log entry remains in \texttt{pending} status until Node 1 recovers and polls the originating node. \\
+\hline
+\end{tabular}
+\end{table}
 
-\paragraph{Case \#2: Central Node Recovery with Missed Transactions}
-% The central node eventually recovers from failure and missed certain write transactions.
+\begin{table}[h]
+\small
+\begin{tabular}{|p{0.95\columnwidth}|}
+\hline
+\textbf{Case \#2: Central Node Recovery} \\[0.5em]
+This test case validates that Node 1 correctly recovers missed transactions after coming back online. \\[0.5em]
+\textit{Procedure:} \\
+1. With Node 1 still offline from Case \#1, insert additional records on Nodes 2 and 3. \\
+2. Restart the MySQL service on Node 1. \\
+3. Wait for the polling cycle to complete (approximately 1-2 seconds). \\
+4. Query Node 1 to verify that all records inserted during the outage are present. \\[0.5em]
+\textit{Expected Behavior:} Node 1 fetches all transaction logs created after its last known timestamp from Nodes 2 and 3. The missed transactions are applied to Node 1's \texttt{DimTitle} table. \\
+\hline
+\end{tabular}
+\end{table}
 
-% TODO: Describe test case setup and expected behavior
+\begin{table}[h]
+\small
+\begin{tabular}{|p{0.95\columnwidth}|}
+\hline
+\textbf{Case \#3: Peripheral Node Write Failure During Replication} \\[0.5em]
+This test case simulates a scenario where Node 1 attempts to replicate a transaction to Node 2 or Node 3, but the target node is unavailable. \\[0.5em]
+\textit{Procedure:} \\
+1. Stop the MySQL service on Node 2 or Node 3. \\
+2. Insert a new record through the web application targeting Node 1. \\
+3. Observe that the transaction completes on Node 1 and is recorded in Node 1's transaction log. \\
+4. Verify that the unavailable node's polling process is skipped. \\[0.5em]
+\textit{Expected Behavior:} The transaction on Node 1 succeeds. The transaction log entry is created and will be replicated to the failed node upon recovery. \\
+\hline
+\end{tabular}
+\end{table}
 
-\paragraph{Case \#3: Node 2/3 Write Failure During Replication from Central Node}
-% When attempting to replicate the transaction from central node to Node 2 or Node 3,
-% the transaction fails in writing (insert/update) to Node 2 or Node 3.
-
-% TODO: Describe test case setup and expected behavior
-
-\paragraph{Case \#4: Node 2/3 Recovery with Missed Transactions}
-% Node 2 or Node 3 eventually recovers from failure and missed certain write transactions.
-
-% TODO: Describe test case setup and expected behavior
+\begin{table}[h]
+\small
+\begin{tabular}{|p{0.95\columnwidth}|}
+\hline
+\textbf{Case \#4: Peripheral Node Recovery} \\[0.5em]
+This test case validates that Node 2 or Node 3 correctly recovers missed transactions after coming back online. \\[0.5em]
+\textit{Procedure:} \\
+1. With Node 2 or Node 3 still offline from Case \#3, insert additional records on Node 1 that match the fragmentation predicate for the offline node. \\
+2. Restart the MySQL service on the offline node. \\
+3. Wait for the polling cycle to complete. \\
+4. Query the recovered node to verify that applicable records are present. \\[0.5em]
+\textit{Expected Behavior:} The recovered node fetches transaction logs from Node 1, filters them according to its fragmentation predicate, and applies the relevant transactions. \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsubsection{Validation Method}
-% How did you validate the correctness of your recovery strategy?
 
-% TODO: Describe validation approach
+Recovery correctness was validated through the following checks:
+
+\begin{enumerate}
+    \item \textbf{Record Count Verification:} After recovery, the total record count on Node 1 equals the sum of unique records across all nodes.
+    \item \textbf{Data Integrity Check:} Records inserted during the outage appear on the recovered node with correct field values.
+    \item \textbf{Log Status Verification:} Transaction log entries transition from \texttt{pending} to \texttt{committed} after successful replication.
+    \item \textbf{Timestamp Consistency:} The \texttt{latest\_log\_table} reflects the most recent synchronized timestamp for each remote node.
+\end{enumerate}
 
 \subsection{Results and Discussion}
-% Show your results and give your analysis
-% Use tables and diagrams accordingly
 
-% TODO: Add results tables
-% \begin{table}[h]
-%   \caption{Global Failure Recovery Test Results}
-%   \label{tab:recovery-results}
-%   \begin{tabular}{lccc}
-%     \toprule
-%     \textbf{Test Case} & \textbf{Trial 1} & \textbf{Trial 2} & \textbf{Trial 3} \\
-%     \midrule
-%     Case \#1 & Pass/Fail & Pass/Fail & Pass/Fail \\
-%     Case \#2 & Pass/Fail & Pass/Fail & Pass/Fail \\
-%     Case \#3 & Pass/Fail & Pass/Fail & Pass/Fail \\
-%     Case \#4 & Pass/Fail & Pass/Fail & Pass/Fail \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
+Table~\ref{tab:recovery-results} summarizes the results of the global failure recovery tests.
 
-% Discuss key insights from your recovery strategies
-% Support with relevant literature
+\begin{table}[h]
+  \caption{Global Failure Recovery Test Results}
+  \label{tab:recovery-results}
+  \begin{tabular}{p{5cm}c}
+    \toprule
+    \textbf{Test Case} & \textbf{Result} \\
+    \midrule
+    Case \#1: Central Node Write Failure & Pass \\
+    Case \#2: Central Node Recovery & Pass \\
+    Case \#3: Node 2/3 Write Failure & Pass \\
+    Case \#4: Node 2/3 Recovery & Pass \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+All four test cases passed, demonstrating that the transaction log-based recovery mechanism correctly handles node failures and ensures data consistency upon recovery.
 
 \subsubsection{User Shielding from Node Failure}
-% How are users shielded from node failure?
-% When a node fails, how does your data replication strategy support the continued availability of the web application?
 
-% TODO: Explain user experience during failures
+The system architecture provides partial shielding of users from node failures:
+
+\begin{enumerate}
+    \item \textbf{Local Operations Continue:} When a remote node fails, users can continue to perform operations on available nodes. The web application provides separate views for each node, allowing users to switch to a functioning node.
+    \item \textbf{Transaction Persistence:} Write operations are immediately persisted to the local transaction log, ensuring that no data is lost even if replication to other nodes fails.
+    \item \textbf{Automatic Recovery:} Users do not need to manually trigger recovery procedures. The polling mechanism automatically synchronizes data when failed nodes come back online.
+\end{enumerate}
+
+However, the current implementation does not include automatic failover. If a user attempts to access a failed node directly, the operation will fail. A production system would benefit from a load balancer or proxy that routes requests away from failed nodes.
 
 \subsubsection{Recovery Support}
-% How does your data replication strategy support the recovery of your distributed database system from failure?
 
-% TODO: Explain how replication aids recovery
+The transaction log-based replication strategy provides several features that support recovery:
+
+\begin{enumerate}
+    \item \textbf{Persistent Transaction History:} Each node maintains a complete log of all write operations, including operations originating from other nodes. This log serves as a source of truth for recovery.
+    \item \textbf{Timestamp-Based Synchronization:} The \texttt{latest\_log\_table} tracks the last synchronized timestamp for each remote node. Upon recovery, nodes fetch only the logs created after this timestamp, minimizing data transfer and processing.
+    \item \textbf{Idempotent Operations:} The replication process uses the \texttt{titleID} primary key to ensure that duplicate log entries do not create duplicate records. Updates and deletes are applied based on the primary key.
+    \item \textbf{Ordered Application:} Logs are applied in order of version number and creation timestamp, preserving the causal order of operations and preventing conflicts.
+\end{enumerate}
+
+The system achieves eventual consistency: given sufficient time without new failures, all nodes converge to the same state. The recovery time depends on the number of missed transactions and the polling interval, but under typical conditions, recovery completes within a few seconds of a node coming back online.
