@@ -10,8 +10,6 @@ async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) 
     let maxTimestamp = new Date(logs[0].created_at)
 
     for (const log of logs) {
-      console.log("executing: ", log)
-
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
 
       await conn.query(

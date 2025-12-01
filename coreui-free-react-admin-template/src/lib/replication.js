@@ -16,6 +16,8 @@ export async function replicateNode(localId) {
     for (const log of pendingLogs) {
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
 
+      console.log("Replicating: ", log)
+
       try {
         await conn.beginTransaction()
         await conn.query('UPDATE trigger_control SET disable_triggers = 1')
