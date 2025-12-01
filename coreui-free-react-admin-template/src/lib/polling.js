@@ -2,99 +2,88 @@ import { dbNodes } from '../../server.js'
 import { replicateNode } from './replication.js'
 
 async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) {
-  if (logs.length === 0) return
-
-  console.log(
-    `[Node ${localId}] Applying ${logs.length} logs from Node ${sourceNodeId} into ${localTable}`,
-  )
+  if (!logs.length) return
 
   const conn = await localDB.getConnection()
   try {
     await conn.beginTransaction()
-    try {
-      let maxTimestamp = new Date(logs[0].created_at)
+    let maxTimestamp = new Date(logs[0].created_at)
 
-      for (const log of logs) {
-        const { operation_type, payload, version, created_at, committed_at, log_id } = log
-        const parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload
+    for (const log of logs) {
+      const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
 
-        await conn.query(
-          `INSERT INTO ${localTable} (operation_type, payload, version, status, origin_node_id, created_at, committed_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            operation_type,
-            JSON.stringify(parsedPayload),
-            version,
-            'pending',
-            sourceNodeId,
-            created_at,
-            committed_at,
-          ],
-        )
+      await conn.query(
+        `INSERT INTO ${localTable} (operation_type, payload, version, status, origin_node_id, created_at, committed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          log.operation_type,
+          JSON.stringify(payload),
+          log.version,
+          'pending',
+          sourceNodeId,
+          log.created_at,
+          log.committed_at,
+        ],
+      )
 
-        console.log(`[Node ${localId}] Inserted log ${log_id} from Node ${sourceNodeId}`)
-
-        if (new Date(created_at) > maxTimestamp) maxTimestamp = new Date(created_at)
-      }
-
-      // Advance latest_log after all inserts
-      await conn.query(`UPDATE latest_log_table SET latest_log = ? WHERE node_id = ?`, [
-        maxTimestamp,
-        sourceNodeId,
-      ])
-      console.log(`[Node ${localId}] Updated latest_log for Node${sourceNodeId} to ${maxTimestamp}`)
-
-      await conn.commit()
-    } catch (err) {
-      await conn.rollback()
-      console.error(`[Node ${localId}] Failed applying logs from Node${sourceNodeId}:`, err)
-      throw err
+      const logCreated = new Date(log.created_at)
+      if (logCreated > maxTimestamp) maxTimestamp = logCreated
     }
+
+    await conn.query(`UPDATE latest_log_table SET latest_log = ? WHERE node_id = ?`, [
+      maxTimestamp,
+      sourceNodeId,
+    ])
+
+    await conn.commit()
+  } catch (err) {
+    await conn.rollback()
+    console.error(`[Node${localId}] Failed to apply logs from Node${sourceNodeId}:`, err)
   } finally {
     conn.release()
   }
 }
 
-async function pollNode(localId, remoteId, filterFunc = null) {
+export async function pollNode(localId, remoteId, filterFunc = null) {
   const localDB = dbNodes[localId]
   const remoteDB = dbNodes[remoteId]
 
-  // set READ COMMITTED for each polling
-  const conn = await remoteDB.getConnection()
+  let conn
   try {
+    conn = await remoteDB.getConnection()
     await conn.query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED')
+  } catch (err) {
+    console.error(`[Node${localId}] Cannot connect to Node${remoteId}:`, err.message)
+    return // skip this cycle if remote node is down
+  }
 
-    // Get the last applied timestamp
+  try {
     const [[{ latest_log: lastApplied }]] = await localDB.query(
       `SELECT latest_log FROM latest_log_table WHERE node_id = ?`,
       [remoteId],
     )
-    console.log(`[Node${localId}] Last applied timestamp from Node${remoteId}: ${lastApplied}`)
 
-    // Fetch new logs
     const [logs] = await conn.query(
       `SELECT * FROM node${remoteId}_transaction_log 
        WHERE created_at > ? AND origin_node_id != ?
        ORDER BY created_at ASC, log_id ASC`,
       [lastApplied, localId],
     )
-    console.log(`[Node${localId}] Fetched ${logs.length} new logs from Node${remoteId}`)
 
-    if (logs.length === 0) return
+    if (!logs.length) return
 
-    // Filter logs if need be
     const filteredLogs = filterFunc ? logs.filter(filterFunc) : logs
     if (filteredLogs.length !== logs.length) {
-      console.log(`[Node${localId}] ${logs.length - filteredLogs.length} logs were filtered out`)
+      console.log(`[Node${localId}] ${logs.length - filteredLogs.length} logs filtered out`)
     }
 
-    // Apply logs
     await applyLogsBatch(localDB, localId, remoteId, filteredLogs, `node${localId}_transaction_log`)
+  } catch (err) {
+    console.error(`[Node${localId}] Error polling Node${remoteId}:`, err)
   } finally {
     conn.release()
   }
 }
-
 /**
  * Filters
  */
@@ -132,18 +121,30 @@ async function pollNode3() {
 }
 
 async function syncNode1() {
-  await pollNode1()
-  await replicateNode(1)
+  try {
+    await pollNode1()
+    await replicateNode(1)
+  } catch (err) {
+    console.error('[Node1] sync failed:', err)
+  }
 }
 
 async function syncNode2() {
-  await pollNode2()
-  await replicateNode(2)
+  try {
+    await pollNode2()
+    await replicateNode(2)
+  } catch (err) {
+    console.error('[Node2] sync failed:', err)
+  }
 }
 
 async function syncNode3() {
-  await pollNode3()
-  await replicateNode(3)
+  try {
+    await pollNode3()
+    await replicateNode(3)
+  } catch (err) {
+    console.error('[Node3] sync failed:', err)
+  }
 }
 
 async function startNode1Polling() {

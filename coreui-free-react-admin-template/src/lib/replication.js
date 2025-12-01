@@ -5,25 +5,19 @@ export async function replicateNode(localId) {
   const conn = await localDB.getConnection()
 
   try {
-    // Fetch pending logs
     const [pendingLogs] = await conn.query(
       `SELECT * FROM node${localId}_transaction_log WHERE status = "pending" ORDER BY created_at ASC, log_id ASC`,
     )
 
-    if (pendingLogs.length === 0) return
+    if (!pendingLogs.length) return
 
     for (const log of pendingLogs) {
-      console.log(`[Node${localId}] Replicating log ID ${log.log_id} to other nodes`)
-
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
 
       try {
         await conn.beginTransaction()
-
-        // Disable triggers
         await conn.query('UPDATE trigger_control SET disable_triggers = 1')
 
-        // Perform the operation
         switch (log.operation_type) {
           case 'INSERT':
             await conn.query(
@@ -47,7 +41,6 @@ export async function replicateNode(localId) {
               ],
             )
             break
-
           case 'UPDATE':
             await conn.query(
               `UPDATE DimTitle
@@ -72,18 +65,13 @@ export async function replicateNode(localId) {
               ],
             )
             break
-
           case 'DELETE':
             await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])
             break
         }
 
-        // Update transaction log and latest_log
         await updateCommittedLogsStatus(conn, localId, log.log_id)
-
-        // Re-enable triggers
         await conn.query('UPDATE trigger_control SET disable_triggers = 0')
-
         await conn.commit()
       } catch (err) {
         await conn.rollback()
