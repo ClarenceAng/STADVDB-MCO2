@@ -51,6 +51,8 @@ app.post('/create', async (req, res) => {
     genre3: body.genre3,
   }
 
+  console.log(insertDraft)
+
   try {
     await dbNodes[node].query('START TRANSACTION')
     const [r] = await dbNodes[node].query(
