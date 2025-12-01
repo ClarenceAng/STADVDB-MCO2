@@ -3,55 +3,56 @@
 %%
 \section{Discussion}
 
-% Present your findings vis-a-vis the learnings and insights gained from the conduct of your experiments/simulations.
-% Focus on two key aspects: (i) concurrency and update strategy, and (ii) recovery strategy.
+This section interprets the experimental findings and situates the design decisions within the broader context of distributed database theory.
 
 \subsection{Importance of Distributed Databases}
-% What is the importance of distributed databases?
 
-% TODO: Discuss the benefits and importance
-% - Scalability
-% - Availability
-% - Fault tolerance
-% - Geographic distribution
+Centralized database systems face inherent limitations as data volumes grow and user bases expand geographically. A single server eventually becomes a bottleneck for both storage capacity and query throughput~\cite{Ozsu2011}. Distributed databases overcome these constraints by partitioning data across multiple nodes, enabling horizontal scalability without replacing existing hardware. Replication further strengthens the system by ensuring continued availability when individual nodes fail, while geographic distribution reduces query latency by placing data closer to end users.
+
+Our three-node architecture reflects these principles. Node 1 functions as a central repository containing the complete dataset, while Nodes 2 and 3 maintain horizontal partitions that serve queries for their respective content types independently.
 
 \subsection{Concurrency and Isolation Levels}
-% How do proper isolation levels allow transactions to be executed concurrently?
 
-% TODO: Discuss findings from isolation level experiments
-% - Trade-offs between consistency and throughput
-% - Appropriate use cases for each isolation level
+% TODO: Complete this section after concurrency control experiments
+% Discuss how different isolation levels affect concurrent transaction execution
+% Reference findings from Section 3 test cases
+
+Isolation levels govern how transactions interact with concurrent operations, defining the boundary between consistency and throughput~\cite{Berenson1995}. Stricter isolation prevents anomalies such as dirty reads and phantom rows but requires more aggressive locking, which reduces parallelism.
+
+% TODO: Add specific findings from isolation level experiments
+
+For the polling mechanism, our system adopts READ COMMITTED isolation. This level strikes a balance by preventing transactions from reading uncommitted data while still permitting concurrent operations to proceed without excessive blocking.
 
 \subsection{Data Fragmentation and Replication}
-% Why are data fragmentation and replication necessary?
-% How do these affect data consistency and recovery?
 
-% TODO: Discuss findings
-% - Benefits of horizontal fragmentation
-% - Replication for fault tolerance
-% - Impact on consistency
+Fragmentation partitions a database into segments distributed across nodes~\cite{Ozsu2011}. Our implementation uses horizontal fragmentation on the \texttt{titleType} attribute, separating television content from other media types. This design concentrates related records on dedicated servers, improving cache locality and enabling parallel query execution across partitions.
+
+Replication works in tandem with fragmentation to provide fault tolerance. Node 1 retains a complete copy of all records, following a primary-backup model that allows peripheral nodes to recover lost data from the central repository~\cite{ElmasriNavathe2016}. The cost of this redundancy is additional storage and the overhead of keeping replicas synchronized. Our transaction log-based approach mitigates synchronization costs by propagating changes asynchronously, accepting eventual consistency as a trade-off for higher availability~\cite{Vogels2009}.
 
 \subsection{Benefits of Replication During Node Failure}
-% How do data replication benefit users even when a node fails?
 
-% TODO: Discuss high availability through replication
+When a node becomes unavailable, replication ensures that users retain access to their data through alternate nodes. If Node 2 fails, queries for non-television content can still be served by Node 1, which holds the complete dataset. Meanwhile, write operations continue on available nodes, with the transaction logs preserving updates until the failed node recovers.
+
+This behavior aligns with the principle of eventual consistency articulated by Vogels~\cite{Vogels2009}: distributed systems should prioritize availability during partial failures, deferring strict consistency until connectivity is restored. Our experiments validated this approach. After simulating node failures and subsequent recovery, all transactions accumulated during the outage replicated successfully within seconds.
 
 \subsection{Data Transparency}
-% How is data transparency supported by your data replication and update strategy?
 
-% TODO: Discuss location transparency, replication transparency, fragmentation transparency
+An effective distributed database hides the complexity of its architecture from applications and users~\cite{Ozsu2011}. Location transparency shields users from needing to know which node stores a given record. Our web interface moves toward this goal by presenting a unified view, though users currently select the target node explicitly. Fragmentation transparency hides the partitioning scheme; while our replication logic applies fragmentation predicates automatically, the interface still exposes the underlying structure. Replication transparency masks the existence of multiple copies; our system achieves this during recovery, but the asynchronous polling interval introduces visible propagation delays.
+
+Achieving full transparency would require a query routing layer that directs requests based on predicates, abstracting the distributed topology entirely from end users.
 
 \subsection{Facilities for Node Recovery}
-% What facilities need to be in place to support node recovery?
 
-% TODO: Discuss required components
-% - Transaction logs
-% - Checkpoint mechanisms
-% - Synchronization protocols
+Recovery depends on several coordinated mechanisms. Each node maintains a persistent transaction log capturing all write operations along with their type, payload, version, and timestamps. This approach follows the write-ahead logging discipline described by Mohan et al.~\cite{Mohan1992}, ensuring that log records precede data modifications.
+
+The \texttt{latest\_log\_table} tracks the most recent synchronized timestamp for each remote node, enabling incremental recovery that fetches only new entries. Logs are applied in version and timestamp order to preserve causal relationships and avoid conflicts from concurrent updates. A \texttt{trigger\_control} flag disables local triggers during replication, preventing the recursive generation of log entries that would otherwise propagate indefinitely.
+
+Together, these components allow the system to recover automatically once connectivity is restored, provided at least one node retains an intact transaction log.
 
 \subsection{Lessons Learned}
-% Additional insights and lessons from the project
 
-% TODO: Share practical insights from implementation
+Building the system surfaced several practical insights. The polling interval presents a fundamental trade-off: shorter intervals reduce replication lag but increase network and database overhead. A one-second interval proved sufficient for our test workloads while remaining sustainable under continuous operation.
 
-% Cite relevant references to further support your discussion
+Multi-master replication introduces the risk of primary key collisions. We addressed this by configuring auto-increment offsets of 1, 2, and 3 with an increment of 3, guaranteeing unique identifiers across nodes. Triggers streamlined log generation but demanded careful control during replication to prevent infinite recursion. Finally, robust connection handling proved essential; the polling loop must detect failures promptly and continue retrying without blocking unrelated operations.
+
+% TODO: Add lessons from concurrency control experiments after completing Section 3
