@@ -3,76 +3,345 @@
 %%
 \section{Test Scripts}
 
-% The test script should be submitted as part of the Appendix of your Technical Report.
-% Write a test script for each of the test cases described in Steps 3 and 4.
-% Execute each of your test cases at least 3 times and log the results.
-
 \subsection{Concurrency Control Test Scripts}
 
-\subsubsection{Test Case 1: Concurrent Read Operations}
-% Test script for concurrent reads
-
-% \begin{lstlisting}[caption={Test Script for Concurrent Reads}]
-% // Test setup and execution steps
-% \end{lstlisting}
-
-\subsubsection{Test Case 2: Concurrent Read-Write Operations}
-% Test script for concurrent read-write
-
-% \begin{lstlisting}[caption={Test Script for Concurrent Read-Write}]
-% // Test setup and execution steps
-% \end{lstlisting}
-
-\subsubsection{Test Case 3: Concurrent Write Operations}
-% Test script for concurrent writes
-
-% \begin{lstlisting}[caption={Test Script for Concurrent Writes}]
-% // Test setup and execution steps
-% \end{lstlisting}
-
-\subsection{Global Failure Recovery Test Scripts}
-
-\subsubsection{Test Case 1: Central Node Write Failure}
-% Test script for central node write failure
-
-% \begin{lstlisting}[caption={Test Script for Central Node Write Failure}]
-% // Test setup and execution steps
-% \end{lstlisting}
-
-\subsubsection{Test Case 2: Central Node Recovery}
-% Test script for central node recovery
-
-% \begin{lstlisting}[caption={Test Script for Central Node Recovery}]
-% // Test setup and execution steps
-% \end{lstlisting}
-
-\subsubsection{Test Case 3: Node 2/3 Write Failure}
-% Test script for peripheral node write failure
-
-% \begin{lstlisting}[caption={Test Script for Node 2/3 Write Failure}]
-% // Test setup and execution steps
-% \end{lstlisting}
-
-\subsubsection{Test Case 4: Node 2/3 Recovery}
-% Test script for peripheral node recovery
-
-% \begin{lstlisting}[caption={Test Script for Node 2/3 Recovery}]
-% // Test setup and execution steps
-% \end{lstlisting}
+% TODO: Add concurrency control test scripts when test cases are available
 
 \section{Supplementary Materials}
 
-% Optional: Include code snippets, SQL statements, sample extracts of the dataset, and sample query results
+\subsection{Database Schema}
 
-\subsection{Database Setup Scripts}
-% SQL scripts for setting up the distributed database
+\subsubsection{DimTitle Table}
 
-% \begin{lstlisting}[language=SQL, caption={Node 1 Database Setup}]
-% -- SQL statements for Node 1
-% \end{lstlisting}
+\leavevmode\begin{lstlisting}[language=SQL, caption={DimTitle Table Schema}]
+CREATE TABLE `DimTitle` (
+  `titleID` int NOT NULL AUTO_INCREMENT,
+  `tconst` varchar(20) DEFAULT NULL,
+  `titleType` varchar(255) DEFAULT NULL,
+  `primaryTitle` varchar(511) DEFAULT NULL,
+  `originalTitle` varchar(511) DEFAULT NULL,
+  `isAdult` tinyint(1) DEFAULT NULL,
+  `startYear` int DEFAULT NULL,
+  `endYear` int DEFAULT NULL,
+  `genre1` varchar(20) DEFAULT NULL,
+  `genre2` varchar(20) DEFAULT NULL,
+  `genre3` varchar(20) DEFAULT NULL,
+  `dateCreated` date DEFAULT NULL,
+  `dateModified` date DEFAULT NULL,
+  `version` int DEFAULT 1,
+  PRIMARY KEY (`titleID`),
+  KEY `index_genre` (`genre1`,`genre2`,`genre3`),
+  KEY `index_title` (`titleType`)
+) ENGINE=InnoDB;
+\end{lstlisting}
 
-\subsection{Sample Query Results}
-% Sample outputs from test executions
+\subsubsection{Transaction Log Table}
 
-\subsection{Additional Diagrams}
-% Any additional supporting diagrams
+\leavevmode\begin{lstlisting}[language=SQL, caption={Transaction Log Table Schema}]
+CREATE TABLE node{N}_transaction_log (
+    log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    operation_type ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    payload JSON NOT NULL,
+    version INT DEFAULT NULL,
+    status ENUM('pending','committed','failed') 
+           NOT NULL DEFAULT 'pending',
+    origin_node_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    committed_at TIMESTAMP NULL
+);
+\end{lstlisting}
+
+\subsubsection{Latest Log Table}
+
+\leavevmode\begin{lstlisting}[language=SQL, caption={Latest Log Tracking Table}]
+CREATE TABLE latest_log_table (
+    node_id INT PRIMARY KEY,
+    latest_log TIMESTAMP NOT NULL,
+    latest_commit TIMESTAMP NOT NULL
+);
+\end{lstlisting}
+
+\subsubsection{Trigger Control Table}
+
+\leavevmode\begin{lstlisting}[language=SQL, caption={Trigger Control Table}]
+CREATE TABLE trigger_control (
+    disable_triggers TINYINT(1) DEFAULT 0
+);
+\end{lstlisting}
+
+\subsection{Trigger Definitions}
+
+\subsubsection{Insert Trigger}
+
+\leavevmode\begin{lstlisting}[language=SQL, caption={Transaction Log Insert Trigger}]
+CREATE TRIGGER transaction_log_insert
+AFTER INSERT ON DimTitle
+FOR EACH ROW
+BEGIN
+  IF (SELECT disable_triggers FROM trigger_control) != 1 THEN
+    INSERT INTO node{N}_transaction_log (
+      operation_type, payload, version, 
+      status, origin_node_id
+    ) VALUES (
+      'INSERT',
+      JSON_OBJECT(
+        'titleID', NEW.titleID,
+        'tconst', NEW.tconst,
+        'titleType', NEW.titleType,
+        'primaryTitle', NEW.primaryTitle,
+        'originalTitle', NEW.originalTitle,
+        'isAdult', NEW.isAdult,
+        'startYear', NEW.startYear,
+        'endYear', NEW.endYear,
+        'genre1', NEW.genre1,
+        'genre2', NEW.genre2,
+        'genre3', NEW.genre3,
+        'dateCreated', NEW.dateCreated,
+        'dateModified', NEW.dateModified
+      ),
+      NEW.version, 'pending', {N}
+    );
+  END IF;
+END
+\end{lstlisting}
+
+\subsubsection{Update Trigger}
+
+\leavevmode\begin{lstlisting}[language=SQL, caption={Transaction Log Update Trigger}]
+CREATE TRIGGER transaction_log_update
+AFTER UPDATE ON DimTitle
+FOR EACH ROW
+BEGIN
+  IF (SELECT disable_triggers FROM trigger_control) != 1 THEN
+    INSERT INTO node{N}_transaction_log (
+      operation_type, payload, version, 
+      status, origin_node_id
+    ) VALUES (
+      'UPDATE',
+      JSON_OBJECT(
+        'titleID', NEW.titleID,
+        'tconst', NEW.tconst,
+        'titleType', NEW.titleType,
+        'primaryTitle', NEW.primaryTitle,
+        'originalTitle', NEW.originalTitle,
+        'isAdult', NEW.isAdult,
+        'startYear', NEW.startYear,
+        'endYear', NEW.endYear,
+        'genre1', NEW.genre1,
+        'genre2', NEW.genre2,
+        'genre3', NEW.genre3,
+        'dateCreated', NEW.dateCreated,
+        'dateModified', NEW.dateModified
+      ),
+      NEW.version, 'pending', {N}
+    );
+  END IF;
+END
+\end{lstlisting}
+
+\subsubsection{Delete Trigger}
+
+\leavevmode\begin{lstlisting}[language=SQL, caption={Transaction Log Delete Trigger}]
+CREATE TRIGGER transaction_log_delete
+AFTER DELETE ON DimTitle
+FOR EACH ROW
+BEGIN
+  IF (SELECT disable_triggers FROM trigger_control) != 1 THEN
+    INSERT INTO node{N}_transaction_log (
+      operation_type, payload, version, 
+      status, origin_node_id
+    ) VALUES (
+      'DELETE',
+      JSON_OBJECT('titleID', OLD.titleID),
+      OLD.version, 'pending', {N}
+    );
+  END IF;
+END
+\end{lstlisting}
+
+\subsubsection{Version Update Trigger}
+
+\leavevmode\begin{lstlisting}[language=SQL, caption={Version Update Trigger}]
+CREATE TRIGGER version_update
+BEFORE UPDATE ON DimTitle
+FOR EACH ROW
+BEGIN
+    SET NEW.version = OLD.version + 1;
+END
+\end{lstlisting}
+
+\subsubsection{Fragmentation Enforcement Triggers}
+
+\leavevmode\begin{lstlisting}[language=SQL, caption={Node 2 Fragmentation Trigger (Misc)}]
+-- Node 2: Rejects TV content
+CREATE TRIGGER misc_create_trigger
+BEFORE INSERT ON DimTitle
+FOR EACH ROW
+BEGIN
+  IF NEW.titleType LIKE 'tv%' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = "Cannot create TV content in MISC node";
+  END IF;
+END
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL, caption={Node 3 Fragmentation Trigger (TV)}]
+-- Node 3: Rejects non-TV content
+CREATE TRIGGER tv_create_trigger
+BEFORE INSERT ON DimTitle
+FOR EACH ROW
+BEGIN
+  IF NEW.titleType NOT LIKE 'tv%' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = "Cannot create MISC content in TV node";
+  END IF;
+END
+\end{lstlisting}
+
+\subsection{Replication Implementation}
+
+\subsubsection{Polling Mechanism}
+
+\leavevmode\begin{lstlisting}[caption={Polling Function}]
+export async function pollNode(localId, remoteId, filterFunc = null) {
+  const localDB = dbNodes[localId]
+  const remoteDB = dbNodes[remoteId]
+
+  let conn
+  try {
+    conn = await remoteDB.getConnection()
+    await conn.query(
+      'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'
+    )
+  } catch (err) {
+    console.error(`[Node${localId}] Cannot connect to Node${remoteId}`)
+    return // skip this cycle if remote node is down
+  }
+
+  try {
+    const [[{ latest_log: lastApplied }]] = await localDB.query(
+      `SELECT latest_log FROM latest_log_table WHERE node_id = ?`,
+      [remoteId]
+    )
+
+    const [logs] = await conn.query(
+      `SELECT * FROM node${remoteId}_transaction_log 
+       WHERE created_at > ? AND origin_node_id != ?
+       ORDER BY version ASC, created_at ASC, log_id ASC`,
+      [lastApplied, localId]
+    )
+
+    if (!logs.length) return
+
+    const filteredLogs = filterFunc ? logs.filter(filterFunc) : logs
+    await applyLogsBatch(localDB, localId, remoteId, filteredLogs, 
+      `node${localId}_transaction_log`)
+  } catch (err) {
+    console.error(`[Node${localId}] Error polling Node${remoteId}`)
+  } finally {
+    conn.release()
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Replication Function}
+
+\leavevmode\begin{lstlisting}[caption={Replication Function}]
+export async function replicateNode(localId) {
+  const localDB = dbNodes[localId]
+  const conn = await localDB.getConnection()
+
+  try {
+    const [pendingLogs] = await conn.query(
+      `SELECT * FROM node${localId}_transaction_log 
+       WHERE status = "pending" AND origin_node_id != ? 
+       ORDER BY version ASC, created_at ASC, log_id ASC`,
+      [localId]
+    )
+
+    if (!pendingLogs.length) return
+
+    for (const log of pendingLogs) {
+      const payload = typeof log.payload === 'string' 
+        ? JSON.parse(log.payload) : log.payload
+
+      try {
+        await conn.beginTransaction()
+        await conn.query(
+          'UPDATE trigger_control SET disable_triggers = 1'
+        )
+
+        switch (log.operation_type) {
+          case 'INSERT':
+            // Insert and update titleID to match source
+            break
+          case 'UPDATE':
+            // Update existing record
+            break
+          case 'DELETE':
+            // Delete record
+            break
+        }
+
+        await updateCommittedLogsStatus(conn, localId, log.log_id)
+        await conn.query(
+          'UPDATE trigger_control SET disable_triggers = 0'
+        )
+        await conn.commit()
+      } catch (err) {
+        await conn.rollback()
+      }
+    }
+  } finally {
+    conn.release()
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Filter Functions}
+
+\leavevmode\begin{lstlisting}[caption={Fragmentation Filter Functions}]
+// Node 2 filter: accepts only non-TV content
+const filterMisc = (log) => {
+  try {
+    const payload = typeof log.payload === 'string' 
+      ? JSON.parse(log.payload) : log.payload
+    if (log.operation_type === 'UPDATE' || 
+        log.operation_type === 'DELETE') return true
+    return payload.titleType && 
+           !payload.titleType.toLowerCase().startsWith('tv')
+  } catch {
+    return false
+  }
+}
+
+// Node 3 filter: accepts only TV content
+const filterTV = (log) => {
+  try {
+    const payload = typeof log.payload === 'string' 
+      ? JSON.parse(log.payload) : log.payload
+    if (log.operation_type === 'UPDATE' || 
+        log.operation_type === 'DELETE') return true
+    return payload.titleType && 
+           payload.titleType.toLowerCase().startsWith('tv')
+  } catch {
+    return false
+  }
+}
+\end{lstlisting}
+
+\subsection{Node Configuration}
+
+\begin{lstlisting}[language=SQL, caption={Auto-Increment Configuration}]
+-- Node 1: Central node (all records)
+SET GLOBAL auto_increment_offset = 1;
+SET GLOBAL auto_increment_increment = 3;
+
+-- Node 2: Misc content (movie, short, video, videoGame)
+SET GLOBAL auto_increment_offset = 2;
+SET GLOBAL auto_increment_increment = 3;
+
+-- Node 3: TV content (tvEpisode, tvSeries, tvMiniSeries, tvMovie)
+SET GLOBAL auto_increment_offset = 3;
+SET GLOBAL auto_increment_increment = 3;
+\end{lstlisting}
