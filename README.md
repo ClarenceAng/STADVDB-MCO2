@@ -116,7 +116,3 @@ LINES TERMINATED BY '\n'
 (titleID, tconst, titleType, primaryTitle, originalTitle, isAdult, startYear, endYear, genre1, genre2, genre3, dateCreated, dateModified)
 SET version = 0;
 ```
-
-### Additional notes
-
-Web client template lifted from creativeLabs Łukasz Holeczek [here](https://github.com/coreui/coreui-free-react-admin-template).
