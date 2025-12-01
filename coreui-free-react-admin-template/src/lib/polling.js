@@ -27,6 +27,8 @@ async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) 
         ],
       )
 
+      console.log(`Added log ${log.version} from node ${sourceNodeId}`)
+
       const logCreated = new Date(log.created_at)
       if (logCreated > maxTimestamp) maxTimestamp = logCreated
     }
