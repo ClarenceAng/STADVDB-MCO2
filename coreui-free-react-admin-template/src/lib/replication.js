@@ -21,7 +21,7 @@ export async function replicateNode(localId) {
       if (sameTitleLogs.length > 1) {
         const max = sameTitleLogs.reduce((prev, next) => {
           if (prev.version == next.version) {
-            return prev.origin_node_id < next.origin_node_id ? prev : next
+            return prev.origin_node_id == 1 ? prev : next
           }
           else {
             return prev.version > next.version ? prev : next
@@ -32,6 +32,8 @@ export async function replicateNode(localId) {
         return true        
       }
     })
+
+    console.log("# of logs to apply: ", filteredLogs.length)
 
     for (const log of filteredLogs) {
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
