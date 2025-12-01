@@ -80,7 +80,7 @@ export async function replicateNode(localId) {
                 payload.genre3,
                 payload.dateCreated,
                 payload.dateModified,
-                log.version
+                log.version,
                 payload.titleID,
                 log.version
               ],
