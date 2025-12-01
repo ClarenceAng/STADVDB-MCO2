@@ -1,5 +1,5 @@
 # Use Node LTS base image
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 # Set working directory
 WORKDIR /webapp
