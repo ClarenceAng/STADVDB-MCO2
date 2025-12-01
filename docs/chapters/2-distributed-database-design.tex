@@ -7,7 +7,7 @@ This section describes the architecture of the distributed database system, incl
 
 \subsection{System Architecture}
 
-The system consists of three MySQL database nodes deployed on separate cloud servers. Each node runs independently and communicates with the others through MySQL replication channels. The nodes are configured as follows:
+The system consists of three MySQL database nodes deployed on separate cloud servers. Each node runs independently and communicates with the others through a custom transaction log-based synchronization mechanism. The nodes are configured as follows:
 
 \begin{itemize}
     \item \textbf{Node 1 (Central Node):} Contains all 100,000 records from the dataset. This node serves as the central coordinator and maintains the complete dataset for reference and recovery purposes.
@@ -15,7 +15,7 @@ The system consists of three MySQL database nodes deployed on separate cloud ser
     \item \textbf{Node 3:} Contains records where \texttt{titleType} is not in the set above, primarily television-related content such as \texttt{tvSeries}, \texttt{tvEpisode}, \texttt{tvMovie}, and \texttt{tvSpecial}.
 \end{itemize}
 
-The three nodes are hosted on separate domains (\texttt{stadvdb1}, \texttt{stadvdb2}, \texttt{stadvdb3}) and communicate over the network using MySQL's native replication protocol.
+The three nodes are hosted on separate virtual machines (\texttt{stadvdb1}, \texttt{stadvdb2}, \texttt{stadvdb3}) connected to the same local network and synchronize through application-level polling of transaction logs.
 
 \subsection{Database Schema}
 
@@ -62,11 +62,48 @@ Nodes 2 and 3 contain non-overlapping subsets. The union of these subsets equals
 
 \subsection{Data Replication Strategy}
 
-% How is data replicated across the nodes?
+The system uses a custom transaction log-based replication mechanism rather than relying on MySQL's built-in replication features. This approach provides a finer control over the replication behavior and supports the recovery requirements of the distributed system.
 
-% TODO: Describe replication strategy
-% - Full replication on Node 1
-% - Partial replication on Nodes 2 and 3
+\subsubsection{Transaction Log Tables}
+
+Each node maintains a transaction log table (\texttt{node\{X\}\_transaction\_log}) that records all write operations. The log structure includes:
+
+\begin{itemize}
+    \item \texttt{log\_id}: Unique identifier for each log entry
+    \item \texttt{operation\_type}: The type of operation (INSERT, UPDATE, DELETE)
+    \item \texttt{payload}: JSON representation of the affected record
+    \item \texttt{version}: Version number for ordering
+    \item \texttt{status}: Current state (pending or committed)
+    \item \texttt{origin\_node\_id}: The node where the operation originated
+    \item \texttt{created\_at}: Timestamp when the log entry was created
+    \item \texttt{committed\_at}: Timestamp when the operation was committed
+\end{itemize}
+
+A separate \texttt{latest\_log\_table} tracks the last applied log timestamp from each remote node. This would enable the nodes to determine which logs have not yet been replicated.
+
+\subsubsection{Replication Flow}
+
+The replication process operates as follows:
+
+\begin{enumerate}
+    \item When a write operation occurs on any node, it is recorded in that node's transaction log with status \texttt{pending}.
+    \item A polling mechanism runs continuously on each node, checking remote nodes for new log entries.
+    \item New logs are fetched based on the \texttt{created\_at} timestamp, filtered by the fragmentation predicate, and inserted into the local transaction log.
+    \item A separate replication process applies pending logs from remote nodes to the local \texttt{DimTitle} table.
+    \item Once applied, the log status is updated to \texttt{committed}.
+\end{enumerate}
+
+\subsubsection{Fragmentation-Aware Filtering}
+
+When replicating from Node 1 to Nodes 2 or 3, logs are filtered based on the \texttt{titleType} attribute:
+
+\begin{itemize}
+    \item Node 2 accepts only records where \texttt{titleType} does not start with \texttt{tv}.
+    \item Node 3 accepts only records where \texttt{titleType} starts with \texttt{tv}.
+    \item UPDATE and DELETE operations are replicated to all relevant nodes regardless of \texttt{titleType}.
+\end{itemize}
+
+Node 1, as the central node, receives all logs from Nodes 2 and 3 without filtering.
 
 \subsection{Web Application Overview}
 
@@ -81,8 +118,34 @@ The backend server runs on port 4000 and provides endpoints for reading records 
 
 \subsection{Update and Recovery Mechanism Overview}
 
-% Give an overview of the update and recovery mechanism as a prelude to Sections 3 and 4
+This section provides a high-level overview of the update propagation and recovery mechanisms. Detailed algorithms and experimental results are presented in Sections 3 and 4.
 
-% TODO: Provide high-level overview
-% - How updates are propagated across nodes
-% - How recovery is handled when nodes fail
+\subsubsection{Update Propagation}
+
+The system implements a multi-master architecture where any node can accept write operations. Updates propagate through the following process:
+
+\begin{enumerate}
+    \item A client submits a write request (INSERT, UPDATE, or DELETE) to a specific node through the web application.
+    \item The node executes the operation locally within a transaction and records the operation in its transaction log.
+    \item A background synchronization process runs on each node at regular intervals (every 1 second), performing three steps:
+    \begin{itemize}
+        \item \textbf{Poll:} Fetch new transaction logs from remote nodes that have timestamps greater than the last applied log.
+        \item \textbf{Commit Self:} Mark locally-originated logs as committed.
+        \item \textbf{Replicate:} Apply pending logs from remote nodes to the local database.
+    \end{itemize}
+    \item The replication process uses a \texttt{trigger\_control} table to temporarily disable local triggers during replication, preventing recursive log entries.
+\end{enumerate}
+
+\subsubsection{Recovery Mechanism}
+
+The transaction log-based design supports recovery from node failures:
+
+\begin{enumerate}
+    \item Each node tracks the last applied log timestamp from every other node in the \texttt{latest\_log\_table}.
+    \item When a node becomes unavailable, the polling mechanism detects the connection failure and skips that node for the current cycle.
+    \item When the failed node recovers, the polling mechanism resumes and fetches all logs created after the last applied timestamp.
+    \item Logs are ordered by version, creation timestamp, and log ID to ensure correct application order.
+    \item The recovery process applies missed transactions incrementally, bringing the recovered node back to a consistent state.
+\end{enumerate}
+
+This approach ensures that no transactions are lost during node failures, provided the transaction logs remain intact. The system achieves eventual consistency: all nodes converge to the same state once network connectivity is restored and all pending logs are processed.
