@@ -11,7 +11,7 @@ async function applyLogsBatch(localDB, localId, sourceNodeId, logs, localTable) 
 
     for (const log of logs) {
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
-      // if (log.status !== 'pending') continue
+      if (log.status !== 'pending') continue
 
       await conn.query(
         `INSERT INTO ${localTable} (operation_type, payload, version, status, origin_node_id, created_at, committed_at)
@@ -79,6 +79,8 @@ export async function pollNode(localId, remoteId, filterFunc = null) {
     if (filteredLogs.length !== logs.length) {
       console.log(`[Node${localId}] ${logs.length - filteredLogs.length} logs filtered out`)
     }
+
+    console.log(filteredLogs)
 
     await applyLogsBatch(localDB, localId, remoteId, filteredLogs, `node${localId}_transaction_log`)
   } catch (err) {

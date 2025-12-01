@@ -7,7 +7,7 @@ export async function replicateNode(localId) {
 
   try {
     const [pendingLogs] = await conn.query(
-      `SELECT * FROM node${localId}_transaction_log WHERE status = "pending" AND origin_node_id != ? ORDER BY version ASC, created_at ASC, log_id ASC`,
+      `SELECT * FROM node${localId}_transaction_log WHERE status = "pending" AND origin_node_id != ? ORDER BY created_at ASC, log_id ASC`,
       [localId],
     )
 
@@ -19,21 +19,23 @@ export async function replicateNode(localId) {
       })
 
       if (sameTitleLogs.length > 1) {
-        const max = sameTitleLogs.reduce((prev, next) => {
-          if (prev.version == next.version) {
-            return prev.origin_node_id == 1 ? prev : next
-          }
-          else {
-            return prev.version > next.version ? prev : next
-          }
-        }, [sameTitleLogs[0]])
+        const max = sameTitleLogs.reduce(
+          (prev, next) => {
+            if (prev.version == next.version) {
+              return prev.origin_node_id == 1 ? prev : next
+            } else {
+              return prev.version > next.version ? prev : next
+            }
+          },
+          [sameTitleLogs[0]],
+        )
         return log.log_id == max.log_id
       } else {
-        return true        
+        return true
       }
     })
 
-    console.log("# of logs to apply: ", filteredLogs.length)
+    console.log('# of logs to apply: ', filteredLogs.length)
 
     for (const log of filteredLogs) {
       const payload = typeof log.payload === 'string' ? JSON.parse(log.payload) : log.payload
@@ -90,17 +92,17 @@ export async function replicateNode(localId) {
                 payload.dateCreated,
                 payload.dateModified,
                 log.version,
-                payload.titleID
+                payload.titleID,
               ],
             )
             break
-            case 'DELETE':
-              await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])
+          case 'DELETE':
+            await conn.query(`DELETE FROM DimTitle WHERE titleID = ?`, [payload.titleID])
             break
-          }
-          
-          await updateCommittedLogsStatus(conn, localId, log.log_id)
-          console.log(`Replicated: ${log.version} from node ${log.origin_node_id}`)
+        }
+
+        await updateCommittedLogsStatus(conn, localId, log.log_id)
+        console.log(`Replicated: ${log.version} from node ${log.origin_node_id}`)
         await conn.query('UPDATE trigger_control SET disable_triggers = 0')
         await conn.commit()
       } catch (err) {
@@ -138,8 +140,8 @@ export async function commitSelf(localId) {
     await conn.beginTransaction()
 
     const [pendingLogs] = await conn.query(
-      `SELECT * FROM node${localId}_transaction_log 
-       WHERE status = "pending" AND origin_node_id = ? 
+      `SELECT * FROM node${localId}_transaction_log
+       WHERE status = "pending" AND origin_node_id = ?
        ORDER BY created_at ASC, log_id ASC`,
       [localId],
     )
@@ -152,8 +154,8 @@ export async function commitSelf(localId) {
     for (const log of pendingLogs) {
       // simply mark own logs as committed — do NOT apply them
       await conn.query(
-        `UPDATE node${localId}_transaction_log 
-         SET status = 'committed', committed_at = NOW() 
+        `UPDATE node${localId}_transaction_log
+         SET status = 'committed', committed_at = NOW()
          WHERE log_id = ?`,
         [log.log_id],
       )
@@ -161,8 +163,8 @@ export async function commitSelf(localId) {
 
     // update last commit
     await conn.query(
-      `UPDATE latest_log_table 
-         SET latest_commit = NOW() 
+      `UPDATE latest_log_table
+         SET latest_commit = NOW()
          WHERE node_id = ?`,
       [localId],
     )
