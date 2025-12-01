@@ -109,6 +109,8 @@ app.post('/update', async (req, res) => {
 app.get('/items', async (req, res) => {
   // Bruh we getting sql injection here AHAHAHAHAHAHA
   // OFC we ain't doing this in the real world
+  console.log(req)
+  console.log(req.query)
   const node = req.query['node']
   const pageSize = req.query['ps']
   const pageNumber = req.query['page']
@@ -116,7 +118,6 @@ app.get('/items', async (req, res) => {
   const query = keywords.length
     ? `SELECT * FROM DimTitle WHERE ${keywords.map((k) => `primaryTitle LIKE '%${k}%'`).join(' AND ')} LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
     : `SELECT * FROM DimTitle LIMIT ${pageSize} OFFSET ${pageNumber * pageSize}`
-  console.log(query)
   const [rows] = await dbNodes[node].query(query)
   res.json(rows)
 })
